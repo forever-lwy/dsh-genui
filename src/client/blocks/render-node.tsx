@@ -4,7 +4,8 @@
  * the sibling block modules. Depth-guarded against pathological specs.
  * @module @changfenhuang/dsh-genui/client/blocks/render-node
  */
-import { type ReactNode, useEffect, useState, type CSSProperties } from 'react'
+import { cloneElement, isValidElement, type ReactNode, useEffect, useState, type CSSProperties } from 'react'
+import { nodeInlineStyle } from '../theme.ts'
 import css from '../GenuiBlock.module.css'
 import { GENUI_LIMITS } from '../genui-runtime/index.ts'
 import { renderInline } from '../inline.ts'
@@ -221,6 +222,20 @@ function showsNothing(node: GenuiNode): boolean {
 }
 
 /**
+ * Fork: apply a node's whitelisted `style`. A host element (div/span/…) takes
+ * the declarations directly so layout stays identical; a component element is
+ * wrapped, because its props are not a style channel.
+ */
+function withNodeStyle(rendered: ReactNode, node: GenuiNode, key: number): ReactNode {
+  const style = nodeInlineStyle(node.style)
+  if (style === undefined || rendered === null || rendered === undefined || rendered === false) return rendered
+  if (isValidElement<{ style?: CSSProperties }>(rendered) && typeof rendered.type === 'string') {
+    return cloneElement(rendered, { style: { ...rendered.props.style, ...style } })
+  }
+  return <div key={key} data-genui-styled="" style={style}>{rendered}</div>
+}
+
+/**
  * Render a node, applying its layout gate first.
  *
  * `when` hides the node; `enableWhen` keeps it on screen but inert. The inert
@@ -238,7 +253,7 @@ export function renderNode(
   answers?: AnswersState,
   path = `items[${key}]`,
 ): ReactNode {
-  const rendered = renderNodeBody(node, key, onAction, depth, answers, path)
+  const rendered = withNodeStyle(renderNodeBody(node, key, onAction, depth, answers, path), node, key)
   if (rendered === null || node.enableWhen === undefined) return rendered
   // Without block state the condition cannot be evaluated: stay enabled rather
   // than disable a control for a reason the renderer cannot see.

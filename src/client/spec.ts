@@ -9,6 +9,7 @@
  * are operable, but events do NOT flow back to the model.
  */
 import { COMPONENT_SCHEMAS, GENUI_NATIVE_TYPES, POPOVER_PLACEMENTS, WHEN_OPS } from './genui-runtime/schema.ts'
+import type { GenuiNodeStyle, GenuiTheme } from './theme.ts'
 
 /** One node in the component tree. */
 /** Layout hints accepted by every node: `span` is how many columns the node
@@ -47,6 +48,8 @@ export interface GenuiLayoutHints {
   enableWhen?: GenuiWhen
   /** One line shown with a disabled node: what unlocks it. */
   disabledReason?: string
+  /** Fork: whitelisted inline style for the node's outer element (client/theme.ts). */
+  style?: GenuiNodeStyle
 }
 
 export type GenuiNode = (
@@ -158,6 +161,8 @@ export interface GenuiSpec {
   append?: boolean
   /** 根据输入字段及其他 Computed 字段计算的公式列表。 */
   computed?: GenuiComputed[]
+  /** Fork: block-wide theme (accent, radius, density, font, surface, …). */
+  theme?: GenuiTheme
   /** Root component list. */
   items: GenuiNode[]
 }

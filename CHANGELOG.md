@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-09 (fork: forever-lwy)
+
+### 新增
+
+- 根级 `theme`：`accent`、`radius`、`density`、`font`、`surface`（flat / outline / soft / glass / elevated）、`background`、`text`、`muted`、`border`、`palette`、`shadow`；任意节点可带白名单内的 `style`。值经过净化（禁止 `url(`、`expression`、分号与花括号等），只以 CSS 变量和内联样式生效。带 `background` 的块按自身明暗配色，浅色海报在深色主题下仍可读。
+- ```` ```dsh-html ```` 自定义画面：模型的 HTML/CSS（可选脚本）在无 `allow-same-origin` 的沙箱 iframe 中内联渲染，透明背景、按内容自适应高度、实时跟随宿主主题（`--dsh-*` 变量）。CSP 关闭网络请求，外链资源可在设置中开启。`dsh.action(name, data)` 只在用户点进画面后转发；画面自行跳转时恢复原内容。流式输出时显示一行占位而不是长代码。
+- 回答操作栏“导出回答”：把一条完成的回答导出为单文件 HTML，保留 Markdown、代码高亮、公式和宿主主题；GenUI 块由独立运行时重新挂载（离线可交互），自定义画面重建为沙箱帧，图片与在用字体内嵌。
+- 插件设置页（插件页 → GenUI）：校验模式、坏围栏自动修正、`render_ui`、自定义画面（开关 / 脚本 / 外链 / 高度上限）、导出按钮；保存后即时生效，无需重启。
+
+### 变更
+
+- 提示词与 skill 以 Markdown 为默认：会议纪要、总结、报告、说明、教程等文字回答再长也不出组件；只有读者要操作、数值要看形状、结构要画图、图片要对照或用户明确要视觉化时才用组件。skill 路由描述同步收窄。
+- 生成前校验可选 `always`（上游行为）/ `uncertain`（拿不准才验）/ `skip`（不注册 `validate_dsh_ui`，提示词与 skill 中的校验说明一并移除）。
+- `render_ui` 工具默认关闭（UI 只以内联围栏出现，少一个约 1.7k 字符的工具定义）；可在设置中打开。
+- 包名改为 `@forever-lwy/dsh-genui`，资源路由随之改为 `/plugins/@forever-lwy/dsh-genui/assets`；设置行 id 仍为 `genui`，持久化键不变。
+
 ## [0.16.0] - 2026-11-09
 
 ### 新增

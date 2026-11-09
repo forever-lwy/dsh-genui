@@ -37,6 +37,7 @@ import { color, enu, int, num, obj, opt, safeMediaSrc, str } from './genui-runti
 import { repairMap, validateMap } from './map-data.ts'
 import { isDatePickerValueValid, isIsoDate } from './date-picker.ts'
 import { classifyLinkTarget } from './file-link.ts'
+import { repairNodeStyle, repairTheme } from './theme.ts'
 import { buildComputedGraph, getComputedInputIds, getDuplicateComputedInputIds, getComputedTemplateScope, getComputedChildNodeScope } from './computed.ts'
 import type { ComputedTemplateScope, ComputedNodeScope } from './computed.ts'
 import { SAFE_MATH_LIMITS } from './safe-math.ts'
@@ -277,8 +278,11 @@ function repairNode(value: unknown, ctx: RepairCtx, depth: number): GenuiNode | 
   const when = repairWhen(raw?.when)
   const enableWhen = repairWhen(raw?.enableWhen)
   const disabledReason = str(raw?.disabledReason, 200)
+  // Fork: generic inline style, except on maps (see schema.ts).
+  const style = node.type === 'map' ? undefined : repairNodeStyle(raw?.style)
   const extras = {
     ...(span === undefined ? {} : { span }),
+    ...(style === undefined ? {} : { style }),
     ...(when === undefined ? {} : { when }),
     ...(enableWhen === undefined ? {} : { enableWhen }),
     ...(disabledReason === undefined ? {} : { disabledReason }),
@@ -1579,6 +1583,7 @@ function repairCanonicalGenuiSpec(
     ...opt('panel', v.panel === true ? true : undefined),
     ...opt('append', v.append === true ? true : undefined),
     ...opt('computed', repairComputedFields(v.computed)),
+    ...opt('theme', repairTheme(v.theme)),
     items: repairItems(v.items, ctx, 0),
   }
 }

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { registerExportableBlock } from './registry.ts'
 import type { BlockInteractionState } from '../interaction-store.ts'
 import { useT } from '../i18n/index.ts'
 import { GenuiBlock } from '../GenuiBlock.tsx'
@@ -112,8 +113,15 @@ export function ExportableGenuiBlock(props: ExportableGenuiBlockProps) {
   }, [])
   const getArtifact = useCallback(() => createGenuiArtifact(props.spec, stateRef.current), [props.spec])
   const { exportEnabled = true, ...blockProps } = props
+  // Fork: the answer exporter finds each block's artifact through its element.
+  const rootRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const element = rootRef.current
+    if (element === null) return
+    return registerExportableBlock(element, getArtifact)
+  }, [getArtifact])
   return (
-    <div data-genui-artifact>
+    <div data-genui-artifact ref={rootRef}>
       <GenuiBlock {...blockProps} onStateSnapshot={captureState} />
       {exportEnabled && <ArtifactExportMenu getArtifact={getArtifact} />}
     </div>

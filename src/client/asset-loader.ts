@@ -5,7 +5,7 @@
  * `window.__GenuiAssets__`.
  *
  * The bundles are served by the plugin's OWN node-half HTTP route
- * (`/plugins/@changfenhuang/dsh-genui/assets/*`), registered through the host
+ * (`/plugins/@forever-lwy/dsh-genui/assets/*`), registered through the host
  * webserver service — no host source change needed, and the longest-prefix
  * rule lets this route win over the generic `/plugins` bundle route. Each
  * file is loaded at most once per page (promise memoized); a rejection is
@@ -19,7 +19,7 @@
  */
 
 /** The plugin's entry id — mirrors the loader entry name (package name). */
-const PLUGIN_ID = '@changfenhuang/dsh-genui'
+const PLUGIN_ID = '@forever-lwy/dsh-genui'
 
 /** Assets directory served by the node-half route. */
 const ASSET_DIR = `/plugins/${PLUGIN_ID}/assets`

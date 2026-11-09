@@ -1,3 +1,10 @@
+> **Fork 说明（forever-lwy）**：本仓库是 [omdsh-dev/dsh-genui](https://github.com/omdsh-dev/dsh-genui) 的个人 fork，包名 `@forever-lwy/dsh-genui`，安装来源 `github:forever-lwy/dsh-genui`（默认分支 `release` 为预构建版本）。相对上游：
+> - 提示词以 Markdown 为默认，会议纪要、总结、报告等文字回答再长也不出组件；
+> - 生成前校验可在插件设置页选择 always / uncertain / skip（skip 不注册 `validate_dsh_ui`）；`render_ui` 默认关闭；
+> - 根级 `theme`（强调色、圆角、疏密、字体、表面、背景、色板、阴影）与任意节点 `style`；
+> - ```` ```dsh-html ```` 自定义画面：沙箱 iframe 中内联渲染，透明背景、自适应高度、跟随主题，可选脚本与外链资源；
+> - 回答操作栏“导出回答”：导出保留渲染效果的单文件 HTML（GenUI 块离线仍可交互）。
+
 <div align="center">
 
 <img src="./assets/genui-logo.svg" width="380" alt="GenUI for DeepSeek Harness">

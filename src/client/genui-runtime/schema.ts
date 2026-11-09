@@ -163,7 +163,15 @@ const recordSchema = (
 
 const nodeFields = {
   type: 'string', span: 'number', when: 'object', enableWhen: 'object', disabledReason: 'string',
+  // Fork: per-node inline style (see client/theme.ts for the allowed keys).
+  style: 'object',
 } as const
+
+/** Node fields minus the fork's inline `style` (for nodes where `style` means something else). */
+function withoutStyle<T extends { style: unknown }>(fields: T): Omit<T, 'style'> {
+  const { style: _style, ...rest } = fields
+  return rest
+}
 
 /** Conditional visibility carried by any node: `{ field, op, value? }`. */
 const whenSchema = recordSchema(['field', 'op'], {
@@ -309,6 +317,8 @@ export const GENUI_SPEC_SCHEMA = schema(['items'], {
   panel: 'boolean',
   append: 'boolean',
   computed: 'array',
+  // Fork: block-wide theme tokens (see client/theme.ts).
+  theme: 'object',
   items: 'nodes',
 }, {}, { nested: { computed: computedFieldSchema } })
 
@@ -433,7 +443,9 @@ const RAW_COMPONENT_SCHEMAS: Readonly<Record<string, ComponentSchema>> = {
   keyvalue: schema(['pairs'], { ...nodeFields, pairs: 'array' }, { items: 'pairs', rows: 'pairs', entries: 'pairs' }, { nested: { pairs: keyValueRecordSchema } }),
   link: schema(['label'], { ...nodeFields, label: 'string', href: 'string' }),
   list: schema(['items'], { ...nodeFields, items: 'array', filter: 'string' }),
-  map: schema(['locations'], { ...nodeFields, id: 'string', title: 'string', locations: 'array', routes: 'array', selected: 'string', center: 'array', zoom: 'number', height: 'number' }, {}, { nested: { locations: recordSchema(['id', 'label', 'coordinates'], { id: 'string', label: 'string', coordinates: 'array', description: 'string' }), routes: recordSchema(['id', 'label', 'coordinates'], { id: 'string', label: 'string', coordinates: 'array' }) } }),
+  // Fork: `style` on a map means a base-map style URL to models; it stays an
+  // unknown (warned, dropped) field there instead of the generic inline style.
+  map: schema(['locations'], { ...withoutStyle(nodeFields), id: 'string', title: 'string', locations: 'array', routes: 'array', selected: 'string', center: 'array', zoom: 'number', height: 'number' }, {}, { nested: { locations: recordSchema(['id', 'label', 'coordinates'], { id: 'string', label: 'string', coordinates: 'array', description: 'string' }), routes: recordSchema(['id', 'label', 'coordinates'], { id: 'string', label: 'string', coordinates: 'array' }) } }),
   mermaid: schema(['code'], { ...nodeFields, code: 'string' }),
   svg: schema(['code'], { ...nodeFields, code: 'string', title: 'string', height: 'number' }),
   plot: schema(['series'], { ...nodeFields, series: 'array', xMin: 'number', xMax: 'number', yMin: 'number', yMax: 'number', title: 'string' }, {}, { nested: { series: plotSeriesSchema } }),

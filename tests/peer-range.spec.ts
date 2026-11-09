@@ -1,3 +1,10 @@
+/**
+ * Fork (forever-lwy) version policy: own plugins are never gated by DSH
+ * version. `engines.dsh` is `*`, and every `@deepseek-ai/dsh-*` peer carries
+ * the same open lower bound (no upper bound, no exact pin). Compatibility is
+ * established by building and testing after each DSH upgrade instead.
+ * DSH compares prerelease hosts with includePrerelease, as tested here.
+ */
 import { readFile } from 'node:fs/promises'
 import { satisfies } from 'semver'
 import { describe, expect, it } from 'vitest'
@@ -7,47 +14,33 @@ const pkg = JSON.parse(await readFile('package.json', 'utf8')) as {
   engines: { dsh: string }
 }
 const dshPeers = Object.entries(pkg.peerDependencies).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
-const supportedRange = '^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2'
+const floor = '>=0.2.1-rc.5'
 const versionCases = [
-  ['0.1.2-rc.1', false],
-  ['0.1.7-alpha.1', false],
-  ['0.1.7-rc.2', false],
-  ['0.2.0-rc.1', true],
-  ['0.2.0-rc.2', true],
-  ['0.2.0', true],
-  ['0.2.1-alpha.1', false],
-  ['0.2.1-alpha.3', false],
-  ['0.2.1-rc.1', true],
-  ['0.2.1-rc.2', true],
-  ['0.2.1-rc.3', true],
-  ['0.2.1', true],
-  ['0.2.1-rc.4', true],
+  ['0.2.0', false],
+  ['0.2.1-rc.4', false],
   ['0.2.1-rc.5', true],
-  ['0.2.2-alpha.1', false],
+  ['0.2.1', true],
   ['0.2.2-alpha.2', true],
-  ['0.2.2-alpha.3', true],
   ['0.2.2-rc.1', true],
   ['0.2.2', true],
-  ['0.3.0-rc.1', false],
-  ['0.3.0', false],
-  ['1.0.0', false],
+  ['0.3.0-rc.1', true],
+  ['1.0.0', true],
 ] as const
 
-describe('DSH peer version ranges', () => {
+describe('DSH peer version ranges (fork policy)', () => {
   it('covers all 18 DSH packages', () => {
     expect(dshPeers).toHaveLength(18)
   })
 
   it.each(versionCases)('%s support matches every DSH peer range', (version, expected) => {
     const mismatches = dshPeers
-      .filter(([, range]) => satisfies(version, range) !== expected)
+      .filter(([, range]) => satisfies(version, range, { includePrerelease: true }) !== expected)
       .map(([name]) => name)
-
     expect(mismatches).toEqual([])
   })
 
-  it('uses the same range for every peer and engines.dsh', () => {
-    expect(pkg.engines.dsh).toBe(supportedRange)
-    expect(dshPeers.every(([, range]) => range === supportedRange)).toBe(true)
+  it('uses one open floor for every peer and no engines gate', () => {
+    expect(pkg.engines.dsh).toBe('*')
+    expect(dshPeers.every(([, range]) => range === floor)).toBe(true)
   })
 })

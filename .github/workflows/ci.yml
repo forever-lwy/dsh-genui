@@ -1,9 +1,10 @@
 name: CI
 
+# Fork (forever-lwy): releases build and test in release.yml; this upstream
+# host matrix runs only on pull requests or by hand.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 # Superseded PR commits can stop; main and manual runs keep unique groups.
 concurrency:

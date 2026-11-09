@@ -21,6 +21,9 @@ import { fileURLToPath } from 'node:url'
 import { createRenderUiTool, createValidateDshUiTool } from './tool.ts'
 import { installFenceFeedback } from './fence-feedback.ts'
 import { installDshGoNative } from './dsh-go-native.ts'
+import { buildGenuiSectionText } from './prompt.ts'
+import { snapshotGenuiConfig, type GenuiConfig } from './config.ts'
+import { adaptSkillContent } from './skill-content.ts'
 
 /* ---------------- lazy engine asset route ---------------- */
 
@@ -36,7 +39,7 @@ import { installDshGoNative } from './dsh-go-native.ts'
  */
 
 /** Route prefix under /plugins; anything under it is this plugin's asset. */
-const ASSET_ROUTE_PATH = '/plugins/@changfenhuang/dsh-genui/assets'
+const ASSET_ROUTE_PATH = '/plugins/@forever-lwy/dsh-genui/assets'
 
 /** Safe flat file names only: no slashes, no traversal, js assets only. */
 const ASSET_FILE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.js$/
@@ -84,52 +87,9 @@ async function serveGenuiAsset(req: IncomingMessage, res: ServerResponse): Promi
   }
 }
 
-const RENDER_UI_TOOL_GUIDANCE = '- Tool channel: render_ui 工具把同一 spec 渲染为工具行卡片；围栏用于回答内联 UI。'
-
-/** The fence language description injected into every assembled system prompt.
- *  Deliberately slim: the `genui` skill carries the full component→field
- *  mapping; this section keeps only the contract that must always be
- *  present (fence syntax, type whitelist, and critical behavioral rules). */
-export const GENUI_SECTION_TEXT = `Render UI inside your reply with a fenced \`dsh-ui\` JSON block:
-
-\`\`\`dsh-ui
-{"title":"示例","gap":14,"items":[{"type":"text","content":"把这里换成你的组件"}]}
-\`\`\`
-
-Allowed \`type\` values; the \`genui\` skill, when available, carries the full content→component mapping and per-component field details:
-
-- 布局: text · row · col · grid · card · carousel · divider · spacer · hero（封面块，一条回答最多一个）
-- 展示: badge · stat · progress · list · table · keyvalue · timeline · file-tree · breadcrumb · callout · steps · diff · json · code · copy · avatar · image · image-group · compare（改动汇报优先）· audio · video · icon · blocks · arrow
-- 图表: chart {"kind":"bars|line|donut","data":[{"label":"...","value":n}]}（series：bars 分组/堆叠 / line 多序列） · echart (preset 名或 option 直通，清单见 skill) · plot (函数图) · svg (单图预览)
-- 交互: button · input · textarea · editor · select · date-picker · segmented-control · checkbox · switch · slider · radio · submit · quiz · choices · link · tabs · accordion · popover
-- 高级: mermaid (流程图/时序/甘特/ER 等，关键字见 skill) · diagram (架构/流程图) · scene3d (3D WebGL) · entity-card
-
-**先问一句：删掉这个组件，读者会不会更费劲。** 会才出；不会就写正文。
-
-- 没有"每条回答至少几个组件"这种目标，也不存在"≥3 条要点就必须出 list"的配额——那是模板，不是判断。
-- 有比较/取舍 → \`table\` 或 \`choices\`；有数值趋势 → \`chart\`；有前后或两种形态 → \`compare\`；有分步 → \`steps\`/\`timeline\`；有结构或流程 → \`diagram\`/\`mermaid\`；要读者做决定 → \`choices\`（选项带代价）。
-- 同一批信息不要在正文和组件里各说一遍；纯文字讲得清的地方不要套壳，默认无卡。
-- 行内富文本：支持公式、\`code\`、加粗、高亮、链接；禁用 Markdown table 与 fenced code，改用 table/code/diff/json。
-- 趋势/占比 → \`chart\`（≤8 点）或 \`echart\`；配色跟随主题，语义需要时才用 \`palette\`/\`card.accent\`；grid 子节点用 \`"span":2\` 做宽窄混排；数据多时给 \`table\`/\`list\` 配 \`input\`(id)+\`filter\` 就地筛选。
-- 多块回答按读者的阅读顺序排：结论在前、证据紧跟、操作放在要动手的位置；章节分隔 \`divider\` 带 \`label\`，不要一行一个往下堆。
-
-**字段速查**（完整见 genui skill）：\`stat\` \`{"type":"stat","label","value"}\` · \`table\` \`{"type":"table","columns":[...],"rows":[[...]]}\` · \`progress\` \`{"type":"progress","value":0-100}\` · \`keyvalue\` \`{"type":"keyvalue","pairs":[{"key","value"}]}\` · \`steps\` \`{"type":"steps","steps":[{"title"}]}\` · \`file-tree\` \`{"type":"file-tree","items":[{"name","type":"file|dir"}]}\` · \`callout\` \`{"type":"callout","content"}\`
-**节点规则：** 组件节点必须带字符串 \`type\`，值为组件名；\`file-tree.items[].type\` 表示 \`file\` 或 \`dir\`。
-
-**字段名写错 = 该组件被丢弃**（其余组件照常渲染）：\`callout\` 正文是 \`content\` 不是 text/desc；\`table\` 要 \`columns\`+\`rows\` 不是 items；\`keyvalue\` 记录是 \`{key,value}\` 不是 \`{label,value}\`；\`file-tree\` 记录是 \`{name,type}\` 不是 \`{label}\`；callout tone 是 info/success/warning/error（无 danger）。不确定就调 \`validate_dsh_ui\`。
-
-Rules:
-- LANGUAGE: reply+UI=conversation language; schema fixed. NEVER infer it from prompt/skill/examples/tools. Replace \`<user-language ...>\`; never emit these placeholders literally.
-- JSON 严格：坏组件被丢弃，坏围栏变代码块；≥3 节点或含 table 时调 validate_dsh_ui，按诊断修改并重验；小围栏字段存疑也先验证。
-- warning=block_markdown：按 replacement 改写并重验。
-- 规模: ≤200 节点、嵌套≤8 层（超出被截断）；一个主题一个主组件；3D mesh 1–5；plot 给合理 xMin/xMax。
-- LOCAL-FIRST + actions: UI 能自己做的状态变化（判卷、判题、重置、展开、选中）就地完成，零往返；action 只用于必须模型参与的事。交互以 [genui-action] name + 组件数据回传，届时重渲染更新 UI；无 action 的按钮禁用。
-- Durable state: 交互状态按会话和内容指纹保存；相同内容刷新/重放时恢复，新内容重置；Editor 草稿也会保存。
-- 卷子模式: 每题 choices（group+answer+explanation）+ 一个 submit（groups 全列），本地判分。
-- Secrets ban: 不索取密码、API Key、Token、恢复码；需要时拒绝并解释。
-${RENDER_UI_TOOL_GUIDANCE}
-- 围栏位置：\`dsh-ui\` 只写在**回答正文**；写在 reasoning/思考块里不渲染、用户看不到——思考里验证好 spec，正文再输出同一份。
-- Panel: "panel":true 只渲染进会话面板 dock 并原地更新；"append":true 追加合并；上限 200 节点/200 次追加，满了发 replace 重建。面板来的 [genui-action] 只回一个 panel:true 围栏 + 至多一行 10 字内确认。`
+export { GENUI_SECTION_TEXT, buildGenuiSectionText } from './prompt.ts'
+export { Config } from './config.ts'
+export type { GenuiConfig } from './config.ts'
 
 /**
  * Register the GenUI output-language section and the render_ui tool.
@@ -159,7 +119,7 @@ function frontmatterField(front: string, key: string): string | undefined {
 }
 
 /** Register through the provider path so source=bundled also gets bundled precedence. */
-function bundledSkillProvider(): SkillProvider {
+function bundledSkillProvider(config: () => GenuiConfig): SkillProvider {
   const moduleDirectory = dirname(fileURLToPath(new URL(import.meta.url)))
   const path = basename(moduleDirectory) === 'plugin'
     ? resolve(moduleDirectory, '../../SKILL.md')
@@ -190,52 +150,60 @@ function bundledSkillProvider(): SkillProvider {
       provider: BUNDLED_SKILL_PROVIDER,
       path,
       resourceBase: { kind: 'directory', path: dirname(path) },
-      content: raw.slice(end + 5),
+      content: adaptSkillContent(raw.slice(end + 5), config()),
     }),
   }
 }
 
-/**
- * Plugin config as the host passes it (unvalidated: the node half deliberately
- * imports no schema library, so a profile can set these keys directly).
- */
-export interface GenuiPluginConfig {
-  /**
-   * 在最终 dsh-ui 围栏无法渲染的回合中请求模型发送一次修正版（issue #160）。
-   * 默认开启，设置为 false 可以关闭同回合围栏修正。GenUI 回合的 reasoning-only 响应仍会交给宿主重试策略处理。
-   * 每回合和每个围栏正文最多请求一次，子代理不触发，每次修正请求会消耗模型步数。
-   */
-  fenceFeedback?: boolean
-
-  /**
-   * 是否注册 render_ui 模型工具。默认开启，设置为 false 时关闭；不影响 validate_dsh_ui 和 dsh-ui 围栏渲染。
-   */
-  renderUiTool?: boolean
-}
-
-export function apply(ctx: Context, config?: GenuiPluginConfig): void {
+export function apply(ctx: Context, input?: unknown): void {
   installDshGoNative(ctx)
-  const renderUiToolEnabled = config?.renderUiTool !== false
+  // Fork: every setting is volatile (the DSH settings page edits it in place
+  // and the loader emits `loader/volatile-update` instead of remounting), so
+  // everything below reads the current snapshot rather than a captured value.
+  let config = snapshotGenuiConfig(input)
   ctx.systemPrompt.section({
     name: 'genui:fence',
     order: ctx.systemPrompt.getSectionOrder('STRUCTURED_OUTPUT'),
-    text: renderUiToolEnabled ? GENUI_SECTION_TEXT : GENUI_SECTION_TEXT.replace(`${RENDER_UI_TOOL_GUIDANCE}\n`, ''),
+    text: () => buildGenuiSectionText(config),
   })
-  installFenceFeedback(ctx, config?.fenceFeedback !== false, renderUiToolEnabled)
+  installFenceFeedback(ctx, () => config.fenceFeedback, () => config.renderUiTool)
   // Hosts without tool access keep the fence channel. The dependency fiber
   // starts whenever tools becomes available and unloads its registrations
-  // before either the service or this plugin is replaced.
-  ctx.inject(['tools'], (toolsCtx) => {
-    toolsCtx.effect(function* () {
-      if (renderUiToolEnabled) {
-        yield toolsCtx.tools.register(createRenderUiTool())
-      }
-      yield toolsCtx.tools.register(createValidateDshUiTool())
+  // before either the service or this plugin is replaced. A settings change
+  // that adds or removes a tool re-registers the set.
+  let toolsCtx: Context | undefined
+  let disposeTools: () => void = () => {}
+  let registered = ''
+  const syncTools = (): void => {
+    const scope = toolsCtx
+    const wanted = `${config.renderUiTool}:${config.validation !== 'skip'}`
+    if (scope === undefined || wanted === registered) return
+    disposeTools()
+    const disposers: Array<() => void> = []
+    if (config.renderUiTool) disposers.push(scope.tools.register(createRenderUiTool()) as unknown as () => void)
+    if (config.validation !== 'skip') disposers.push(scope.tools.register(createValidateDshUiTool()) as unknown as () => void)
+    registered = wanted
+    disposeTools = () => {
+      for (const dispose of disposers.splice(0)) dispose()
+      registered = ''
+    }
+  }
+  ctx.inject(['tools'], (scope) => {
+    toolsCtx = scope
+    syncTools()
+    scope.effect(() => () => {
+      disposeTools()
+      disposeTools = () => {}
+      toolsCtx = undefined
     }, 'dsh-genui: model tools')
   })
+  ctx.on('loader/volatile-update' as never, (() => {
+    config = snapshotGenuiConfig(input)
+    syncTools()
+  }) as never)
 
   ctx.inject(['skills'], (skillCtx) => {
-    skillCtx.skills.registerProvider(() => bundledSkillProvider())
+    skillCtx.skills.registerProvider(() => bundledSkillProvider(() => config))
   })
 
   // webServer.register returns a raw disposer, so an explicit effect binds the

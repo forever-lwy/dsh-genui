@@ -1,236 +1,67 @@
-name: Release
+# Runs only when a v<version> tag is pushed; pushes to master trigger nothing.
+# It builds and tests the tagged master commit, then scripts/release.mjs adds
+# the next commit to the `release` branch: the same tree plus the built lib/,
+# with `prepare` removed, whose parents are the previous release commit and
+# the tagged commit. `release` is the default branch, so
+# github:<owner>/<repo> installs the latest release without devDependencies
+# or a build.
+name: release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release
   cancel-in-progress: false
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      RELEASE_TAG: ${{ github.event.release.tag_name }}
-      PRERELEASE: ${{ github.event.release.prerelease }}
-      HOST_REF: dsh-v0.2.1-rc.3
-      MINIMUM_HOST_REF: dsh-v0.2.0-rc.1
-
     steps:
-      # actions/checkout@v4
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
 
-      # actions/setup-node@v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-
-      # pnpm/action-setup@v4
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      # This fork keeps upstream's pnpm lockfile; release.mjs runs the
+      # package scripts through npm, which works on a pnpm-installed tree.
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.7.0
 
-      # npm Trusted Publishing requires npm >= 11.5.1. Keep the release job
-      # independent from whichever npm minor happens to ship with Node 24.
-      - name: Upgrade npm for trusted publishing
-        run: npm install --global 'npm@^11.5.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
 
-      - name: Verify release version
-        id: release
-        shell: bash
+      - name: Check the tag matches package.json
         run: |
-          VERSION="$(node -p "require('./package.json').version")"
-
-          if [ "$RELEASE_TAG" != "v$VERSION" ]; then
-            echo "::error::release tag ($RELEASE_TAG) does not match package.json version (v$VERSION)"
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $version"
             exit 1
           fi
 
-          VERSION_PRERELEASE="$(node -e 'console.log(process.argv[1].split("+")[0].includes("-") ? "true" : "false")' "$VERSION")"
-          if [ "$PRERELEASE" != "$VERSION_PRERELEASE" ]; then
-            echo "::error::package version prerelease state ($VERSION_PRERELEASE) does not match GitHub release prerelease state ($PRERELEASE)"
-            exit 1
-          fi
+      # The install runs `prepare`; release.mjs rebuilds lib/ from scratch anyway.
+      - run: pnpm install --frozen-lockfile
 
-          if [ "$PRERELEASE" = "true" ]; then
-            echo "npm_tag=preview" >> "$GITHUB_OUTPUT"
-          else
-            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
-            # Never move the public `latest` dist-tag backwards: re-publishing
-            # a stale or recreated release would silently downgrade every
-            # exact-version pin that DSH Desktop installs (#59).
-            PUBLISHED="$(npm view @changfenhuang/dsh-genui version)"
-            if [ -n "$PUBLISHED" ]; then
-              BELOW="$(node -e '
-                const core = (s) => s.replace(/^v/, "").split("-")[0].split(".").map(Number);
-                const below = (t, p) => {
-                  for (let i = 0; i < Math.max(t.length, p.length); i++) {
-                    if ((t[i] ?? 0) < (p[i] ?? 0)) return true;
-                    if ((t[i] ?? 0) > (p[i] ?? 0)) return false;
-                  }
-                  return false;
-                };
-                console.log(below(core(process.argv[1]), core(process.argv[2])) ? "yes" : "no");
-              ' "v$VERSION" "$PUBLISHED")"
-              if [ "$BELOW" = "yes" ]; then
-                echo "::error::refusing to publish v$VERSION below the already-published latest ($PUBLISHED)"
-                exit 1
-              fi
-            fi
-          fi
-
-      # 固定标签的宿主用于 packed e2e；API 检查单独安装发布包类型声明。
-      - name: Clone DSH host
-        shell: bash
+      - name: Build, test and create the release commit
         run: |
-          DSH_ROOT="$GITHUB_WORKSPACE/../../.dsh/source/current"
-          mkdir -p "$(dirname "$DSH_ROOT")"
-          git clone --depth 1 --branch "$HOST_REF" https://github.com/deepseek-ai/deepseek-harness.git "$DSH_ROOT"
-          test -f "$DSH_ROOT/packages/client/ui-primitives/src/index.ts" || {
-            echo "::error::DSH host preflight failed: ui-primitives source is missing"
+          if git ls-remote --exit-code --heads origin release >/dev/null; then
+            git fetch --no-tags origin release:release
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Failures surface as annotations, which are readable without a log
+          # download (the run log needs a signed-in GitHub account).
+          set -o pipefail
+          node scripts/release.mjs 2>&1 | tee "$RUNNER_TEMP/release.log" || {
+            grep -E "FAIL|×|release:|Error|expected|received" "$RUNNER_TEMP/release.log" | head -12 | sed 's/^/::error::/'
             exit 1
           }
 
-      - name: Install and build DSH host
-        working-directory: ${{ github.workspace }}/../../.dsh/source/current
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
-
-      - name: Install plugin dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check
-        run: pnpm run check
-
-      - name: Check published host API
-        run: pnpm run check:host-api "$HOST_REF"
-
-      - name: Check minimum published host API
-        run: pnpm run check:host-api "$MINIMUM_HOST_REF"
-
-      - name: Check next published host API
-        run: pnpm run check:host-api dsh-v0.2.1-rc.4
-
-      - name: Check published alpha API
-        run: pnpm run check:host-api dsh-v0.2.2-alpha.2
-
-      - name: Install exact published alpha host
-        id: alpha_host
-        run: node scripts/prepare-published-host.mjs 0.2.2-alpha.2
-
-      - name: Check published current API
-        run: pnpm run check:host-api dsh-v0.2.2-rc.1
-
-      - name: Check previous published RC API
-        run: pnpm run check:host-api dsh-v0.2.1-rc.5
-
-      - name: Install exact published current host
-        id: current_host
-        run: node scripts/prepare-published-host.mjs 0.2.2-rc.1
-
-      - name: Verify and pack plugin tarball
-        id: pack
-        run: node scripts/verify-pack.mjs --keep
-
-      - name: Smoke selected release channel
-        run: |
-          node --test scripts/sidechat-acceptance/tests/*.test.mjs
-          node scripts/e2e.mjs --smoke --sidechat --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ github.workspace }}/../../.dsh/source/current
-          DSH_BIN: ${{ github.workspace }}/../../.dsh/source/current/apps/cli/lib/bin.js
-
-      - name: Archive release browser acceptance
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-browser-acceptance
-          path: |
-            gallery-*.png
-            gallery-*.json
-            computed-*.png
-            computed-browser-results.json
-            computed-acceptance.json
-            .e2e-artifacts/sidechat/dsh354-*.png
-            .e2e-artifacts/sidechat/dsh354-host-verdict.json
-            .e2e-artifacts/sidechat/dsh354-browser-report.json
-          if-no-files-found: ignore
-
-      - name: Alpha packed gallery and computed acceptance
-        run: node scripts/e2e.mjs --smoke --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.alpha_host.outputs.root }}
-          DSH_BIN: ${{ steps.alpha_host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-alpha.2
-
-      - name: Alpha packed Map browser acceptance
-        run: node scripts/e2e.mjs --smoke --map --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.alpha_host.outputs.root }}
-          DSH_BIN: ${{ steps.alpha_host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-alpha.2
-
-      - name: Archive alpha release browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-alpha-browser-acceptance
-          retention-days: 7
-          include-hidden-files: true
-          path: |
-            gallery-*.png
-            gallery-*.json
-            computed-*.png
-            computed-*.json
-            .e2e-artifacts/map/map-*.png
-            .e2e-artifacts/map/map-*.json
-            .e2e-artifacts/map/map-offline.html
-          if-no-files-found: ignore
-
-      - name: Current packed gallery and computed acceptance
-        run: node scripts/e2e.mjs --smoke --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.current_host.outputs.root }}
-          DSH_BIN: ${{ steps.current_host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-rc.1
-
-      - name: Current packed Map browser acceptance
-        run: node scripts/e2e.mjs --smoke --map --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.current_host.outputs.root }}
-          DSH_BIN: ${{ steps.current_host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-rc.1
-
-      - name: Archive current release browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-current-browser-acceptance
-          retention-days: 7
-          include-hidden-files: true
-          path: |
-            gallery-*.png
-            gallery-*.json
-            computed-*.png
-            computed-*.json
-            .e2e-artifacts/map/map-*.png
-            .e2e-artifacts/map/map-*.json
-            .e2e-artifacts/map/map-offline.html
-          if-no-files-found: ignore
-
-      - name: Publish to npm
-        run: npm publish "${{ steps.pack.outputs.tarball }}" --access public --tag "${{ steps.release.outputs.npm_tag }}"
+      - name: Push the release branch
+        run: git push origin refs/heads/release

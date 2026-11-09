@@ -1,3 +1,5 @@
+> **Fork note (forever-lwy)**: a personal fork of [omdsh-dev/dsh-genui](https://github.com/omdsh-dev/dsh-genui), package `@forever-lwy/dsh-genui`, installed from `github:forever-lwy/dsh-genui` (the default branch `release` carries prebuilt versions). Against upstream: Markdown-first prompting (prose answers stay Markdown however long); pre-render validation selectable as always / uncertain / skip on the plugin's settings page, `render_ui` off by default; a root `theme` and per-node `style`; sandboxed inline ```` ```dsh-html ```` drawings; and an "Export answer" action that saves a reply as a single HTML file with its rendering.
+
 <div align="center">
 
 <img src="./assets/genui-logo.svg" width="380" alt="GenUI for DeepSeek Harness">

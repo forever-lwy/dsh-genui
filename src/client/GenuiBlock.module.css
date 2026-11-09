@@ -2948,3 +2948,9 @@ button.ftNameBtn[aria-expanded] { cursor: pointer; }
   background: color-mix(in srgb, var(--dsl-g-tone, var(--dsl-g-accent)) var(--dsl-g-blocks-tint), transparent);
   border-radius: 10px;
 }
+
+/* Fork (forever-lwy): theme surfaces that need more than a token swap. */
+.block[data-genui-surface='glass'] .card {
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}

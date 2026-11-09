@@ -9,10 +9,10 @@ import * as GenUI from '../src/plugin/index.ts'
 import { COMPONENT_SCHEMAS } from '../src/client/genui-runtime/schema.ts'
 
 /** Boot the plugin and return the assembled system-prompt sections. */
-async function assemble() {
+async function assemble(config?: Record<string, unknown>) {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
-  await ctx.plugin(GenUI)
+  await ctx.plugin(GenUI, config as never)
   return ctx.systemPrompt.assemble({})
 }
 
@@ -65,7 +65,8 @@ describe('genui:fence section', () => {
   })
 
   it('teaches the fence syntax and the component vocabulary', async () => {
-    const assembly = await assemble()
+    // Fork: render_ui is off by default; this checks the guidance with it on.
+    const assembly = await assemble({ renderUiTool: true })
     const section = assembly.sections.find(s => s.name === 'genui:fence')
     expect(section).toBeDefined()
     const text = typeof section!.text === 'string' ? section!.text : ''
@@ -115,7 +116,10 @@ describe('genui:fence section', () => {
     // original ~6.1k chars / ~2.3k tokens measured in issue #29. Raised from
     // 3200 for issue #186's counter-example block (file-tree/callout field
     // warnings + tightened validate wording); still ~45% below the original.
-    expect(text.length).toBeLessThanOrEqual(3400)
+    // Fork: Markdown-first, theme and dsh-html guidance raise the section to
+    // ≤4200 chars, while render_ui (≈1.7k chars of tool schema) is off by
+    // default — the per-request total still drops (see fork-prompt.spec.ts).
+    expect(text.length).toBeLessThanOrEqual(4200)
     for (const type of WHITELISTED_COMPONENT_TYPES) {
       expect(text).toContain(type)
     }
@@ -166,7 +170,8 @@ describe('genui:fence section', () => {
   })
 
   it.each([
-    { name: 'default config', config: undefined, expected: ['render_ui', 'validate_dsh_ui'] },
+    // Fork: render_ui is off by default.
+    { name: 'default config', config: undefined, expected: ['validate_dsh_ui'] },
     { name: 'renderUiTool enabled', config: { renderUiTool: true }, expected: ['render_ui', 'validate_dsh_ui'] },
     { name: 'renderUiTool disabled', config: { renderUiTool: false }, expected: ['validate_dsh_ui'] },
     { name: 'renderUiTool and fenceFeedback disabled', config: { renderUiTool: false, fenceFeedback: false }, expected: ['validate_dsh_ui'] },
@@ -203,13 +208,13 @@ describe('genui:fence section', () => {
       },
     })
 
-    const first = await ctx.plugin(GenUI)
+    const first = await ctx.plugin(GenUI, { renderUiTool: true })
     expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
 
     await first.dispose()
     expect(registered.size).toBe(0)
 
-    const second = await ctx.plugin(GenUI)
+    const second = await ctx.plugin(GenUI, { renderUiTool: true })
     expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
     await second.dispose()
     expect(registered.size).toBe(0)
@@ -218,7 +223,7 @@ describe('genui:fence section', () => {
   it('moves model tools when the optional tools service is replaced', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
-    const genui = await ctx.plugin(GenUI)
+    const genui = await ctx.plugin(GenUI, { renderUiTool: true })
     const firstRegistry = new Map<string, unknown>()
     const disposeFirstRegistry = ctx.provide('tools', {
       register: (tool: unknown) => {
@@ -325,7 +330,7 @@ describe('genui:fence section', () => {
     await disabled.dispose()
     expect(registered.size).toBe(0)
 
-    const enabled = await ctx.plugin(GenUI)
+    const enabled = await ctx.plugin(GenUI, { renderUiTool: true })
     expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
     await enabled.dispose()
     expect(registered.size).toBe(0)
@@ -489,13 +494,13 @@ describe('genui:fence section', () => {
     })
 
     const first = await ctx.plugin(GenUI)
-    expect([...routes.keys()]).toEqual(['/plugins/@changfenhuang/dsh-genui/assets'])
+    expect([...routes.keys()]).toEqual(['/plugins/@forever-lwy/dsh-genui/assets'])
 
     await first.dispose()
     expect(routes.size).toBe(0)
 
     const second = await ctx.plugin(GenUI)
-    expect([...routes.keys()]).toEqual(['/plugins/@changfenhuang/dsh-genui/assets'])
+    expect([...routes.keys()]).toEqual(['/plugins/@forever-lwy/dsh-genui/assets'])
     await second.dispose()
     expect(routes.size).toBe(0)
   })
@@ -513,7 +518,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect(firstRoutes.get('/plugins/@changfenhuang/dsh-genui/assets')).toEqual(expect.objectContaining({ kind: 'prefix' }))
+      expect(firstRoutes.get('/plugins/@forever-lwy/dsh-genui/assets')).toEqual(expect.objectContaining({ kind: 'prefix' }))
     })
 
     await disposeFirstServer()
@@ -528,7 +533,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect(replacementRoutes.get('/plugins/@changfenhuang/dsh-genui/assets')).toEqual(expect.objectContaining({ kind: 'prefix' }))
+      expect(replacementRoutes.get('/plugins/@forever-lwy/dsh-genui/assets')).toEqual(expect.objectContaining({ kind: 'prefix' }))
     })
 
     await genui.dispose()

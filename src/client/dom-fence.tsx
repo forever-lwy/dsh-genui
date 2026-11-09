@@ -60,6 +60,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { GenuiActionContext, type GenuiActionHandler } from './action-context.ts'
 import { withFileLinkContext, type FileLinkAvailability, type FileLinkCordisContext } from './file-link-context.tsx'
 import { renderSvgFence } from './svg-fence.tsx'
+import { renderHtmlFence } from './html-fence.tsx'
 import { inferSkeleton } from './streaming-shape.ts'
 import { flushSync } from 'react-dom'
 import { GenuiSkeleton } from './blocks/skeleton.tsx'
@@ -193,7 +194,7 @@ const DIAGNOSTIC_CLASS = 'genui-dom-fence-diagnostic'
 /** Host containers a takeover never reaches: our own mounted trees. Every
  * discovery path shares these gates, so a changed node cannot enqueue what a
  * full scan rejects. */
-const SURFACE_EXCLUDES = `.${CONTAINER_CLASS}, .${DIAGNOSTIC_CLASS}, [data-genui-svg-fence], [data-genui-surface], [data-genui-sidechat-root]`
+const SURFACE_EXCLUDES = `.${CONTAINER_CLASS}, .${DIAGNOSTIC_CLASS}, [data-genui-svg-fence], [data-genui-html], [data-genui-surface], [data-genui-sidechat-root]`
 /** Same for tag-text spans: the host renders these rows outside the
  * transcript (reasoning, tool output, sidebars, plugin panels). */
 const TAG_TEXT_EXCLUDES = `.${CONTAINER_CLASS}, .${DIAGNOSTIC_CLASS}, [data-genui-surface], [data-genui-sidechat-root], [data-chat-group-part="reasoning"], [data-tool], [data-sidebar-chat], [data-sidebar-right-session], [data-sidebar-right-panel], [data-panel-conversation], [data-plugin-panel]`
@@ -212,7 +213,7 @@ const IGNORED_MUTATION_SCOPE = `${SURFACE_EXCLUDES}, [data-composer-seat], [data
 const FENCE_ATTRIBUTES = ['data-streaming', 'class', 'data-code-block-content', 'data-code-block-banner',
   'data-chat-anchor-key', 'data-chat-flow-key', 'data-chat-flow-kind', 'data-chat-node-key',
   'data-chat-group-part', 'data-tool', 'data-sidebar-chat', 'data-sidebar-right-session',
-  'data-sidebar-right-panel', 'data-panel-conversation', 'data-plugin-panel', 'data-genui-svg-fence', 'data-genui-surface']
+  'data-sidebar-right-panel', 'data-panel-conversation', 'data-plugin-panel', 'data-genui-svg-fence', 'data-genui-html', 'data-genui-surface']
 /** Slow sweep interval: the observer catches everything, this is the 1s
  * belt-and-braces pass (history loads, missed attribute batches). */
 const SWEEP_MS = 1000
@@ -292,7 +293,7 @@ interface Mount {
   block: HTMLElement
   lastRaw: string
   lastSettled: boolean
-  language: 'dsh-ui' | 'svg'
+  language: 'dsh-ui' | 'svg' | 'dsh-html'
   lastNode: ReactNode
   /** True while this mount is the streaming skeleton (no component yet). */
   skeleton: boolean
@@ -323,12 +324,12 @@ function tagTextBodyOf(block: Element): string | null {
  * must not self-identify through a nested block's label either (issue #13:
  * the shared markdown root was mistaken for a dsh-ui fence and hid the whole
  * message, losing every other code block). */
-function infostringOf(block: Element): 'dsh-ui' | 'svg' | null {
+function infostringOf(block: Element): 'dsh-ui' | 'svg' | 'dsh-html' | null {
   const pre = block.querySelector('pre')
   for (const el of block.querySelectorAll('*')) {
     if (el.childElementCount !== 0) continue
     const lang = normalizeFenceLanguage(el.textContent?.trim() ?? '')
-    if (lang !== 'dsh-ui' && lang !== 'svg') continue
+    if (lang !== 'dsh-ui' && lang !== 'svg' && lang !== 'dsh-html') continue
     if (pre !== null && pre.contains(el)) continue
     // A leaf label that belongs to a NESTED known code surface is that
     // surface's banner, not `block`'s own banner. Only accept labels whose
@@ -352,7 +353,7 @@ function infostringOf(block: Element): 'dsh-ui' | 'svg' | null {
  */
 const KNOWN_LANGUAGE_LABELS = new Set([
   // 插件自有语言
-  'dsh-ui', 'svg',
+  'dsh-ui', 'svg', 'dsh-html',
   // 数据 / 标记 / 纯文本
   'json', 'json5', 'yaml', 'yml', 'toml', 'ini', 'xml', 'html', 'css', 'scss', 'sass', 'less',
   'markdown', 'md', 'text', 'txt', 'plain', 'plaintext', 'log', 'console', 'diff', 'patch',
@@ -470,6 +471,13 @@ function rawOf(block: Element): string {
     else text += node.textContent ?? ''
   }
   return text
+}
+
+/** Fork: one dispatch for every fence language this channel takes over. */
+function renderForLanguage(language: Mount['language'], raw: string, key: Key, context: GenuiFenceContext, settled: boolean): ReactNode | null {
+  if (language === 'svg') return renderSvgFence(raw, key)
+  if (language === 'dsh-html') return renderHtmlFence(raw, key, settled)
+  return renderResolvedFenceNode(raw, key, context)
 }
 
 /** Settled gate: no streaming marker on any ancestor. */
@@ -693,7 +701,7 @@ function fenceIndexOf(row: Element, block: Element, sourceLanguage: (block: Elem
 function hostFenceBlocksOf(row: Element): HTMLElement[] {
   return codeBlockSurfaces(row).filter(candidate => {
     if (closestCodeBlockSurface(candidate.parentElement) !== null) return false
-    if (candidate.closest(`.${CONTAINER_CLASS}, .${DIAGNOSTIC_CLASS}, [data-genui], [data-genui-svg-fence]`) !== null) return false
+    if (candidate.closest(`.${CONTAINER_CLASS}, .${DIAGNOSTIC_CLASS}, [data-genui], [data-genui-svg-fence], [data-genui-html]`) !== null) return false
     if (candidate.closest('[data-genui-sidechat-root], [data-chat-group-part="reasoning"], [data-tool], [data-sidebar-chat], [data-sidebar-right-session], [data-sidebar-right-panel], [data-panel-conversation], [data-plugin-panel]') !== null) return false
     if (candidate.closest(ASSISTANT_FLOW_ROW) !== row) return false
     return isPlausibleFenceSurface(candidate) && candidate.querySelector('pre') !== null
@@ -1228,15 +1236,15 @@ export function installDomFenceRenderer(
     // DSH 可能在最终 DOM 隐去不支持高亮的语言；公开 ChatSnapshot 的原始 Markdown 是 language 来源。
     // 内容识别只在 source 暂不可用且 assistant 已结束时兜底，不覆盖已确认的 language 或无 language fence。
     const genericGenui = language === undefined && settled && isGenericGenuiFence(block, raw)
-    if (language !== 'dsh-ui' && language !== 'svg' && !genericGenui) return
-    if (!settled && language !== 'dsh-ui') return
+    if (language !== 'dsh-ui' && language !== 'svg' && language !== 'dsh-html' && !genericGenui) return
+    if (!settled && language !== 'dsh-ui' && language !== 'dsh-html') return
     if (raw.trim() === '') {
       if (settled) warnOnce(block, `settled ${language ?? 'dsh-ui'} fence has an empty body; keeping the code block`)
       return
     }
     const { key, context } = contextOf(row, block, settled)
-    const acceptedLanguage = language === 'svg' ? 'svg' : 'dsh-ui'
-    const node: ReactNode | null = acceptedLanguage === 'svg' ? renderSvgFence(raw, key) : renderResolvedFenceNode(raw, key, context)
+    const acceptedLanguage = language === 'svg' || language === 'dsh-html' ? language : 'dsh-ui'
+    const node: ReactNode | null = renderForLanguage(acceptedLanguage, raw, key, context, settled)
     // Null = no finished component yet (streaming half) or unrepairable: the
     // stock code block stays visible. A settled unrepairable body also gets a
     // VISIBLE diagnostic — console-only reporting left the defect invisible
@@ -1599,7 +1607,7 @@ export function installDomFenceRenderer(
         && (!sourceSession.available || sourceLanguages.isSessionUnavailable())
       const validGenui = language === 'dsh-ui'
         || (language === undefined && settled && isGenericGenuiFence(block, raw))
-      if (mount.language === 'svg' && language !== 'svg') {
+      if ((mount.language === 'svg' || mount.language === 'dsh-html') && language !== mount.language) {
         unmountBlock(block)
         continue
       }
@@ -1615,7 +1623,7 @@ export function installDomFenceRenderer(
       if (mount.lastRaw !== raw || mount.lastSettled !== settled || contentWiped) {
         const anchor = rowOf(block)
         const { key, context } = contextOf(anchor, block, settled, true)
-        const node = mount.language === 'svg' ? renderSvgFence(raw, key) : renderResolvedFenceNode(raw, key, context)
+        const node = renderForLanguage(mount.language, raw, key, context, settled)
         if (node === null) {
           if (mount.skeleton && !settled) {
             // Still streaming and still incomplete: keep the skeleton mounted

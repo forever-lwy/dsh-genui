@@ -9,7 +9,7 @@ import { walkGenuiNodes } from '../walk-spec.ts'
 const bundleCache = new Map<string, Promise<Uint8Array>>()
 
 /** 将二进制内容编码为不会闭合 script 标签的 Base64。 */
-function bytesToBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
   const chunkSize = 0x8000
   for (let offset = 0; offset < bytes.length; offset += chunkSize) {
@@ -19,12 +19,12 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 /** 转义 HTML 属性和标题中的文本。 */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
 }
 
 /** 获取并缓存构建产物字节，失败时保留可识别的导出错误。 */
-function cachedBundle(name: string, code: GenuiStandaloneAsset | 'runtime'): Promise<Uint8Array> {
+export function cachedBundle(name: string, code: GenuiStandaloneAsset | 'runtime'): Promise<Uint8Array> {
   const existing = bundleCache.get(name)
   if (existing !== undefined) return existing
   const task = fetch(assetUrl(name)).then(async response => {
@@ -40,12 +40,12 @@ function cachedBundle(name: string, code: GenuiStandaloneAsset | 'runtime'): Pro
 }
 
 /** 创建仅存放 Base64 数据的非执行 payload 节点。 */
-function bundleElement(name: string, bytes: Uint8Array): string {
+export function bundleElement(name: string, bytes: Uint8Array): string {
   return `<script type="application/octet-stream" data-genui-bundle="${name}">${bytesToBase64(bytes)}</script>`
 }
 
 /** 将媒体相对地址转换为导出页面所在站点的绝对地址。 */
-function resolveMediaUrls(spec: GenuiSpec, baseURI: string): GenuiSpec {
+export function resolveMediaUrls(spec: GenuiSpec, baseURI: string): GenuiSpec {
   const copy = structuredClone(spec)
   /** 复用媒体节点的 URL 与协议规则，不修改原 JSON artifact。 */
   function resolveUrl(media: string): string {
@@ -82,7 +82,7 @@ function resolveMediaUrls(spec: GenuiSpec, baseURI: string): GenuiSpec {
 }
 
 /** 返回执行内嵌 bundle 的静态启动代码。 */
-function bootstrapSource(): string {
+export function bootstrapSource(): string {
   return `
 async function loadBundle(element) {
   const binary = atob(element.textContent.trim());

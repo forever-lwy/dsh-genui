@@ -228,7 +228,9 @@ describe('Map real-browser acceptance contract (no browser launched)', () => {
       expect(acceptance['continue-on-error']).not.toBe(true)
     }
   })
-  it('requires successful older-host API and latest RC packed browser acceptance before npm publication', async () => {
+  // Fork (forever-lwy): no npm publication; release.yml builds the `release`
+  // branch instead, so upstream's publish-job contract does not apply.
+  it.skip('requires successful older-host API and latest RC packed browser acceptance before npm publication', async () => {
     const workflow = parse(await readFile('.github/workflows/release.yml', 'utf8'))
     const steps = workflow.jobs.publish.steps
     const publish = steps.findIndex((s: { name?: string }) => s.name === 'Publish to npm')

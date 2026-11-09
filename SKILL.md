@@ -1,6 +1,6 @@
 ---
 name: genui
-description: "Render structured interactive UI inline through the dsh-ui fence. Use for key points, emphasis, comparisons, flows, steps, status, data, demos, and interactions whenever structured presentation would be clearer than prose. Preserve conversation language for all user-visible text."
+description: "Render interactive UI, charts, diagrams or custom drawings inline through the dsh-ui / dsh-html fences. Use only when the reader must act (answer, choose, fill, filter), numbers need a chart, a structure or flow needs a diagram, images need side-by-side comparison, or the user asks for a visual, dashboard or page. Prose answers such as meeting notes, summaries, reports, explanations and plans stay Markdown however long. Preserve conversation language for all user-visible text."
 ---
 
 # GenUI — 生成式 UI 输出规范
@@ -143,34 +143,42 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 
 ## 什么时候用：内容类型 → 组件映射
 
+**默认写 Markdown。** 以文字为主的回答——会议纪要、总结、周报、报告、说明、教程、邮件、方案、清单、问答——再长也用 Markdown 的标题、列表、加粗、引用和表格写，不出 `dsh-ui`。"内容很长""要点很多""想显得精致"都不是用组件的理由：一条 2000 字的纪要用 Markdown 读起来最顺，套成卡片网格反而更难扫读、更难复制。
+
+只有下面几种情况，组件才比 Markdown 更好：
+
+1. **读者要操作**：作答与判卷（`quiz`、`choices`）、填写与提交（表单控件 + `submit`）、在方案间做决定（`choices` 带代价）、在大量数据里筛选（`input` + `filter`）。
+2. **数值要看形状**：趋势、占比、分布、对比的数值序列（`chart` / `echart` / `plot`）；只有两三个数字时正文写就行。
+3. **结构或流程画成图明显更清楚**：架构、拓扑、数据流、状态机、时序（`diagram` / `mermaid`）。
+4. **图片要对照**：改动前后、方案 A/B（`compare`）。
+5. **用户明确要视觉化**：仪表盘、卡片、海报、页面、"做成好看的样子"。
+
 **判断只有一句：删掉这个组件，读者会不会更费劲。** 会 → 留着；不会 → 它是装饰，写正文。
 
-**没有配额，也没有硬触发。** 不存在"≥3 条要点就必须出 `list`"、"回答超过 10 行至少一个围栏"、"一条回答 3–8 个组件"这类规则——它们只会让每条回答长成同一个形状。下面的表是**可选词汇表**，回答"这类内容适合用什么"，不是"出现这种内容就要用"。用户明确要纯文字时以用户为准。
-
-判断顺序：这段内容的核心是不是"要比较 / 要计算 / 要做决定 / 要看结构"？是 → 找最小的那个组件承载它；不是 → 正文写清楚。一个回答通常只有一个真正的主组件，其余都是它的证据或操作。
+**没有配额，也没有硬触发。** 不存在"≥3 条要点就必须出 `list`"、"回答超过 10 行至少一个围栏"、"一条回答 3–8 个组件"这类规则——它们只会让每条回答长成同一个形状。下面的表是**可选词汇表**，回答"已经决定要用组件时，这类内容适合用什么"，不是"出现这种内容就要用"。用户明确要纯文字时以用户为准。
 
 | 你要呈现的内容 | 用这些组件 |
 |---|---|
-| 并列结论 / 要点罗列（≥2 条） | `list`、`keyvalue` |
-| 单条重点强调 / 警告 / 注意事项 | `callout`（info/success/warning/error）、`badge`、`stat` |
-| 多项风险 / 注意事项 | `list`；需要统一风险底色时用 `card.tone` + `list` |
 | 数据对比 / 趋势 / 占比 | `chart`（bars/line/donut）、`echart`（ECharts 全功能）、`table` |
-| 关键指标数字 / 进度状态 | `stat`、`progress`、`badge` |
-| 回答的视觉锚点（第一个组件） | `hero`（封面块，一条回答最多一个） |
-| 想排版不呆板 | `grid` + 子节点 `span`（bento：宽窄混排） |
+| 关键指标看板（用户要仪表盘时） | `stat`、`progress`、`badge` |
 | 数据多、需要读者自己找 | `input`（id）+ `table`/`chart`/`list` 的 `filter` 绑定 |
-| 流程 / 步骤 / 阶段 / 时间线 | `steps`、`timeline`、`mermaid`（flowchart/sequence/gantt） |
+| 流程 / 阶段（有分支、要看图时） | `steps`、`timeline`、`mermaid`（flowchart/sequence/gantt） |
 | 架构 / 系统拓扑 / 数据流 / 品牌图 | `diagram`（编辑级，27 种类型；自动布局需求才用 `mermaid`） |
 | 目录 / 文件结构 / 层级关系 | `file-tree`、`mermaid`、`accordion` |
-| 状态一览 / 检查结果 | `badge` + `table` + `progress` 组合 |
-| 代码 / 配置 / 改动对比 | `code`、`diff`、`json` |
-| 图片 / 截图 / 图表预览 | `image` |
+| 状态一览 / 检查结果（多项、要扫读） | `badge` + `table` + `progress` 组合 |
+| 代码改动对比 | `diff` |
+| 图片 / 截图 / 图表预览 | `image`、`compare` |
 | 语音 / 音乐 / AI 视频 / 演示录像 | `audio`、`video` |
-| 两个方案 / 选项对比 | `table`、`tabs`、`diff` |
+| 两个方案 / 选项要读者选 | `choices`、`table`、`tabs` |
 | 教学 / 自测 / 判断题 | `quiz` |
 | 数学函数 / 曲线关系 | `plot`（可带参数滑块、动画） |
 | 需要用户操作 / 筛选 / 反馈 | `button`、`input`、`select`、`checkbox`、`radio`、`switch`、`tabs` |
 | 3D 物体 / 空间布局 | `scene3d` |
+<!-- genui:if html=on -->
+| 内置组件画不出的视觉：海报、插画、动画、特殊排版、小游戏 | ```dsh-html 自定义画面（见下文） |
+<!-- genui:end -->
+
+普通要点、单条提醒、一段说明、纯代码片段：写 Markdown（列表、加粗、引用、代码块），不要换成 `list` / `callout` / `code` 组件。
 
 多项风险需要统一底色时，复用 `card` 包含 `list`；普通要点直接用 `list`。卡片的严重风险色是 `danger`，提示框对应的是 `error`。
 
@@ -194,7 +202,7 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 
 不嵌套、不解析 HTML（每个标记生成 React 元素，不走 innerHTML；`<br>` 字面显示，换行用 `"\n"`）；标记没闭合时原样显示。表格文本、`badge`、`delta` 单元格、分组标题和明细首格支持现有 http/https/mailto 外链与本地文件链接，可直接用于日报的来源列；无效目标仍显示为普通文字。点击链接不会同时折叠分组或展开明细。表头不解析链接，`bar`、`spark`、`ring`、`index` 等专用数值单元格保持原有展示。
 
-文字字段只支持行内富文本。`text.content`、`callout.content`、`list` 项、`keyvalue` 值、`table` 单元格等字段中不要嵌入 Markdown 表格或连续三个及以上反引号、波浪号组成的代码围栏；表格使用 `table`，代码使用 `code`，代码改动使用 `diff`，结构化 JSON 使用 `json`。误写入文字字段的代码围栏连同内部标记保持原文，未闭合时从围栏标记开始保持原文。`validate_dsh_ui` 返回 `warning=block_markdown` 时，按照 `replacement` 改写结构节点并重新验证。
+文字字段只支持行内富文本。`text.content`、`callout.content`、`list` 项、`keyvalue` 值、`table` 单元格等字段中不要嵌入 Markdown 表格或连续三个及以上反引号、波浪号组成的代码围栏；表格使用 `table`，代码使用 `code`，代码改动使用 `diff`，结构化 JSON 使用 `json`。误写入文字字段的代码围栏连同内部标记保持原文，未闭合时从围栏标记开始保持原文。校验返回 `warning=block_markdown` 时，按照 `replacement` 改写结构节点并重新验证。
 
 ## 回答级版式：默认无卡，焦点唯一
 
@@ -377,17 +385,74 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 {"computed":[{"id":"annual","expr":"monthly*12","format":{"locale":"zh-CN","style":"currency","currency":"CNY","maximumFractionDigits":0}},{"id":"tax","expr":"annual*rate","format":{"locale":"zh-CN","style":"currency","currency":"CNY","maximumFractionDigits":0}}],"items":[{"type":"input","id":"monthly","label":"月收入","inputType":"number","value":"10000"},{"type":"input","id":"rate","label":"税率","inputType":"number","value":"0.1"},{"type":"stat","label":"年度收入","value":"{{annual}}"},{"type":"stat","label":"预估税额","value":"{{tax}}"},{"type":"chart","kind":"bars","data":[{"label":"收入","value":{"$computed":"annual"}},{"label":"税额","value":{"$computed":"tax"}}]},{"type":"table","columns":["项目","金额"],"rows":[["年度收入",{"$computed":"annual"}],["预估税额",{"$computed":"tax"}]]}]}
 ```
 
+## 主题与样式：让画面有风格
+
+默认外观跟随宿主主题，绝大多数回答不需要改。用户要特定风格（"做成杂志风""深色霓虹""温暖手账风"），或语义需要统一配色时，用下面两层：
+
+**根级 `theme`**（作用于整个围栏，所有组件继承）：
+
+| 字段 | 取值 | 作用 |
+|---|---|---|
+| `accent` | 颜色（`#7c3aed`、`rgb(...)`、`oklch(...)`） | 强调色：按钮、进度、选中态、图表主色、链接 |
+| `radius` | `none` / `sm` / `md` / `lg` / `xl` 或像素数 | 卡片与控件圆角 |
+| `density` | `compact` / `normal` / `relaxed` | 间距疏密 |
+| `font` | `sans` / `serif` / `mono` / `rounded`，或字体族字符串 | 字体 |
+| `surface` | `default` / `flat`（无影无框）/ `outline`（只描边）/ `soft`（淡色底）/ `glass`（半透明磨砂）/ `elevated`（更强投影） | 卡片表面 |
+| `background` | 颜色或渐变（`linear-gradient(...)` / `radial-gradient(...)`） | 整块画布背景（自动加内边距与圆角） |
+| `text` / `muted` | 颜色 | 主文字色 / 次要文字色 |
+| `border` | 颜色 | 边框色 |
+| `palette` | 颜色数组 | 所有 `chart` / `echart` 的默认分类色板（节点自身 `palette` 优先） |
+| `shadow` | `none` / `soft` / `strong` | 卡片投影强度 |
+
+**节点级 `style`**（任意节点都可带，只作用于该节点外层）：`background`、`color`、`border`、`borderColor`、`borderWidth`、`borderStyle`、`borderRadius`、`padding`、`margin`、`gap`、`fontSize`、`fontWeight`、`fontFamily`、`fontStyle`、`lineHeight`、`letterSpacing`、`textAlign`、`textTransform`、`textShadow`、`boxShadow`、`opacity`、`width`、`maxWidth`、`minHeight`、`backdropFilter`、`filter`、`transform`。值是 CSS 字符串（数字按 px）；含 `url(`、`expression`、`;`、`{}`、`<>`、`@` 的值会被丢弃。可以引用主题变量：`var(--dsl-g-accent)`、`var(--dsl-g-surface)`。
+
+```dsh-ui
+{"theme":{"accent":"#e11d48","font":"serif","radius":"lg","surface":"soft","background":"linear-gradient(135deg,#fff1f2,#ffe4e6)","palette":["#e11d48","#fb7185","#fda4af"]},"items":[{"type":"text","size":"display","content":"<user-language headline>","style":{"letterSpacing":"-0.02em"}},{"type":"grid","columns":3,"items":[{"type":"stat","label":"<label>","value":"42%"},{"type":"stat","label":"<label>","value":"1.8k"},{"type":"stat","label":"<label>","value":"+12"}]}]}
+```
+
+规则：风格是为内容服务的，先有"必须用组件"的理由，再考虑主题；同一条回答里多个围栏保持同一套主题；深浅色都要可读——给了 `background` 就同时给 `text`，避免浅底配宿主深色模式的浅字。
+
+<!-- genui:if html=on -->
+## 自定义画面：```dsh-html
+
+内置组件表达不了的视觉——海报、插画、信息图、动画演示、特殊排版、交互小玩具、小游戏——直接写一个 `dsh-html` 围栏，内容是 HTML 片段：
+
+````text
+```dsh-html
+<style>
+  .poster { padding: 32px; border-radius: 20px; background: linear-gradient(135deg, var(--dsh-accent), #0ea5e9); color: white; }
+  .poster h1 { font: 700 40px/1.1 var(--dsh-font); margin: 0 0 8px; }
+</style>
+<div class="poster"><h1>…</h1><p>…</p></div>
+```
+````
+
+- **内联渲染**：画面就出现在围栏所在位置，前后正文照常流动；背景透明、宽度占满正文列、高度随内容自适应（超过上限后在框内滚动）。不要再在外面包一层"卡片"。
+- **沙箱**：在独立的沙箱 iframe 中运行，不能访问 DSH 页面、Cookie、本地存储或任何网络请求（`fetch` / XHR / WebSocket 都会被拦截）；表单不会提交、链接在新窗口打开。
+- **主题变量**：`--dsh-fg`（主文字）、`--dsh-muted`（次要文字）、`--dsh-bg`（页面底色）、`--dsh-surface`（卡面）、`--dsh-border`、`--dsh-accent`（强调色）、`--dsh-font`、`--dsh-mono`、`--dsh-font-size`，以及 `:root[data-theme="dark"|"light"]`。宿主切换深浅色时变量会实时更新——颜色尽量用这些变量，自己定死颜色时要保证两种主题都可读。
+- **写法**：片段即可（不必写 `<html>`/`<head>`）；`<style>` 放在最前；尺寸用百分比/`max-width:100%`，不要写死大于 720px 的宽度；`<canvas>` 按 `devicePixelRatio` 放大以免模糊。
+<!-- genui:if scripts=on -->
+- **脚本**：可以用内联 `<script>` 做动画、交互和 canvas 绘制；尊重 `prefers-reduced-motion`；不要写死循环或无限增长的定时器。需要把结果交回给你时，在用户点击等操作的回调里调用 `dsh.action("name", {...})`，会以 `[genui-action] name + 数据` 发给你（只在用户刚操作过时生效）。
+<!-- genui:end -->
+<!-- genui:if scripts=off -->
+- **脚本已禁用**：只写 HTML、CSS（含动画/过渡）和 SVG；`<script>` 与事件属性不会执行。
+<!-- genui:end -->
+- **什么时候不用**：文字、表格、普通图表和内置组件能表达的，不要用 `dsh-html`——它不参与 GenUI 的状态保存与判卷，也更费输出。
+
+<!-- genui:end -->
 ## 使用规则
 
 1. **围栏放哪，组件就出现在哪** —— 文字在前后自然流动，不要用工具、不要解释"这是一个围栏"。**围栏一闭合就立即渲染**（不等整条回答结束），所以可以边写文字边出组件
 2. **组合优先**：复杂界面用 `grid`+`card`+`stat`+`table` 拼，不要追求单一巨型组件
 3. **JSON 必须严格合法，发出前完成 4 步自检**：插件**只**修标点级小错（字符串内半角引号、尾随逗号）；**缺括号/错括号等结构错误一律不修**，直接红横幅退化成代码块——写错就重发，别指望兜底。**最容易犯的错：字符串值里用了半角引号 `"`**——中文引语一律写 `“”` 或 `「」`。发出围栏前自检 4 条：① 括号配对：`{` 与 `}`、`[` 与 `]` 数量相等，**收尾序列逐个核对**（长表格最易在最后几行错位：把 `]]}]}` 写成 `]}]}]}`）② 无尾随逗号 ③ 值内引号用中文引号 ④ 最后一个字符必须是 `}`（**`}` 之后不要再写任何字符**——实测常见错误是习惯性追加 `</p>` 或一句解释，整条围栏就解析不了）。不要在 JSON 字符串里放 markdown；超长表格/列表拆成多个组件分开发，宁短勿长
-3.5. **字段名逐个核对**：未知组件类型（包括 `Card` / `Text` 等大小写误写）以及缺失必填字段会被校验工具拒绝。正文可保留其余有效组件；无法修复时展示源码和诊断，不会假报渲染成功。`tabs[].items` 必须提供（允许显式空数组），`content` 可作为别名；`card.body` / `card.content` 会归一化为 `items` 并提示。高频误写：`callout` 正文是 `content`（不是 text/body）；`table` 要 `columns` + `rows`（只给二维 rows 时首行会当表头）；`keyvalue` 要 `pairs:[{key,value}]`；`diff` 是 `diffs`；图片/音视频是 `src`；`code` 是 `code`、`copy` 是 `text`。拿不准就调 `validate_dsh_ui`，不要凭直觉命名。
+3.5. **字段名逐个核对**：未知组件类型（包括 `Card` / `Text` 等大小写误写）以及缺失必填字段会被校验工具拒绝。正文可保留其余有效组件；无法修复时展示源码和诊断，不会假报渲染成功。`tabs[].items` 必须提供（允许显式空数组），`content` 可作为别名；`card.body` / `card.content` 会归一化为 `items` 并提示。高频误写：`callout` 正文是 `content`（不是 text/body）；`table` 要 `columns` + `rows`（只给二维 rows 时首行会当表头）；`keyvalue` 要 `pairs:[{key,value}]`；`diff` 是 `diffs`；图片/音视频是 `src`；`code` 是 `code`、`copy` 是 `text`。<!-- genui:if validation=always|uncertain -->
+拿不准就调 `validate_dsh_ui`，不要凭直觉命名。
+<!-- genui:end -->
 4. **不要嵌套围栏**：dsh-ui 里不要再包 ``` 代码围栏
 5. **深色主题友好**：配色选深底亮色；UI 主题跟随应用
-6. **场景判断**：先查上面的映射表 —— 内容类型命中就上对应组件；只有纯文字问答、一句话能说清时才不用
+6. **场景判断**：先判断是否属于上面五种情况——不属于就写 Markdown，长回答也一样；属于时再查映射表选最小的那个组件
 7. **图表范围**：`plot` 给合理 xMin/xMax（如 -3.14 到 3.14）；3D 场景 mesh 少而精
-8. **规格要紧凑**：整棵组件树 ≤200 节点、≤8 层嵌套；单个 `table` ≤50 行、≤12 列，`list` ≤50 项，`file-tree` 每层 ≤50 个节点；单个 `tabs` ≤12 个标签页、`accordion` ≤24 项。超出限制的内容会被截断，并由 `validate_dsh_ui` 报告；长内容请分成多个组件，并在发出围栏前调用 `validate_dsh_ui` 检查。
+8. **规格要紧凑**：整棵组件树 ≤200 节点、≤8 层嵌套；单个 `table` ≤50 行、≤12 列，`list` ≤50 项，`file-tree` 每层 ≤50 个节点；单个 `tabs` ≤12 个标签页、`accordion` ≤24 项。超出限制的内容会被截断；长内容请分成多个组件。
 9. **一个主题选一个主组件**：命中映射表后选**一种**组件承载，同一信息不要用两种组件重复表达（同一批数据又画 bars 又画 donut = 冗余）
 10. **一个主题一个主组件**：不要把同一件事拆成五块小组件凑数量；宁缺毋滥，纯文字讲清就不出。反例：该用 `table` 对比时写三段 `text`；一个 `stat` 能说清的事套 `card`+`grid`；与内容无关的 `scene3d` 炫技——3D 只在内容本身就是几何/空间时才用
 12. **给命令就给能直接粘的**：多行 python 一律写成 heredoc 包装的**一整段** shell 代码块（`python - <<'PY'` … `PY`），不要用 `python -c "…"` 配反斜杠续行——续行在复制/粘贴里最容易碎成多行，用户还得自己拼回 heredoc。单行表达式才用 `-c`，且必须真的在一行内写完。示例：
@@ -402,7 +467,15 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
     ````
 
     同理：需要用户执行的脚本放进 `code` 节点（`lang`: `bash`/`python`）或正文围栏，并保证**从第一行到最后一行一次粘进终端就能跑**。
+<!-- genui:if validation=always -->
 11. **先验后发（复杂 UI）**：发出 ```dsh-ui 围栏前，若 spec ≥3 个组件、含 `table`，或任一组件接近资源上限，先调用 `validate_dsh_ui` 工具（参数 `spec` 传围栏内的 JSON 文本）验证；返回 `next=fix_and_revalidate` 就按诊断修正后重新验证；返回 `next=emit_fence` 再发出；返回 `next=emit_repaired_fence` 时直接照抄 `repaired_json` 发出，无需再次验证；简单 UI（≤2 个组件且未接近资源上限）不必验证，渲染器会自动修复大部分标点/括号错误
+<!-- genui:end -->
+<!-- genui:if validation=uncertain -->
+11. **拿不准再验**：字段名、结构或资源上限拿不准时，先调用 `validate_dsh_ui`（参数 `spec` 传围栏内的 JSON 文本）；返回 `next=fix_and_revalidate` 就按诊断修正后重新验证，`next=emit_fence` 再发出，`next=emit_repaired_fence` 直接照抄 `repaired_json`。有把握的围栏直接发出，渲染器会修复标点级小错。
+<!-- genui:end -->
+<!-- genui:if validation=skip -->
+11. **直接发出**：本环境不提供校验工具。发出前按第 3 条自检括号、逗号、引号与字段名后直接写围栏；坏组件会被丢弃、坏围栏退化成代码块。
+<!-- genui:end -->
 
 ### 地图 `map`：地点选择与内联路线
 

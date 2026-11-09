@@ -31,6 +31,19 @@ import { mountAchievementToasts } from './achievement-toast.tsx'
 import { bridgeHostLocale, t } from './i18n/index.ts'
 import type { InputTriggerServiceContract } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { assetUrl } from './asset-loader.ts'
+import * as primitives from '@deepseek-ai/dsh-client-ui-primitives'
+import { setClientConfig } from './client-config.ts'
+import { GenuiSettings, type GenuiConfigForm } from './settings.tsx'
+import { createAnswerExportAction } from './answer-export-action.tsx'
+
+/** Fork: the settings row id (cordis.patch.yml) and the package (Plugins page key). */
+const CONFIG_ENTRY = 'genui'
+const PACKAGE_NAME = '@forever-lwy/dsh-genui'
+
+interface ConfigFormsLike {
+  get(entry: string): GenuiConfigForm
+  whileServed(entries: string[], install: () => () => void): () => void
+}
 
 /** Add low-priority prefetch links for the lazy engine assets (mermaid/three).
  * Browser-dependent: some engines ignore `<link rel=prefetch>`; harmless
@@ -137,6 +150,34 @@ export function apply(ctx: Context): () => void {
     localeDispose,
     installDomFenceRenderer(ctx, (sessionId, action, payload) => sendInlineGenuiAction(ctx, sessionId, action, payload), fileLinkAvailability),
   ]
+  // Fork: settings. The renderer follows the row through configForms; the
+  // Plugins page gets an editor for it while the host row is served.
+  ctx.inject(['configForms'], (scope) => {
+    const forms = scope.get('configForms') as ConfigFormsLike | undefined
+    if (forms === undefined) return
+    const form = forms.get(CONFIG_ENTRY)
+    const sync = (): void => {
+      const snapshot = form.getSnapshot()
+      if (snapshot.status === 'ready') setClientConfig(snapshot.value)
+    }
+    sync()
+    scope.effect(() => form.subscribe(sync), 'genui: settings follow')
+    scope.effect(() => forms.whileServed([CONFIG_ENTRY], () => ctx.slots.inject('plugins.bundle.config' as never, () => ctx.slots.register({
+      name: 'plugins.bundle.config',
+      key: PACKAGE_NAME,
+      inject: () => ({ form }),
+    } as never, GenuiSettings as never))), 'genui: settings page')
+  })
+  // Fork: "export answer" in each finished assistant message's action row.
+  const Tooltip = (primitives as Record<string, unknown>).Tooltip
+  const AnswerExportAction = createAnswerExportAction(
+    typeof Tooltip === 'function' || (typeof Tooltip === 'object' && Tooltip !== null) ? Tooltip as never : undefined,
+  )
+  disposers.push(ctx.slots.inject('conversation.chat.assistant-actions' as never, () => ctx.slots.register({
+    name: 'conversation.chat.assistant-actions',
+    id: 'genui.export-answer',
+    order: 80,
+  } as never, AnswerExportAction as never)))
   // Idle prefetch of the lazy engine assets: the browser downloads them at
   // LOW priority whenever the page is idle, so the first mermaid/3D node in
   // a session usually hits a warm cache instead of paying the fetch on first

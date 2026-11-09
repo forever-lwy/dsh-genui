@@ -10,6 +10,7 @@
  * builds byte-identical client.js every time.
  */
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { readFile, realpath } from 'node:fs/promises'
 import { basename, dirname, extname, relative, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,7 +18,8 @@ import type { UserConfig } from 'tsdown'
 import { Rolldown } from 'tsdown'
 import { transform } from 'lightningcss'
 
-const ID = '@changfenhuang/dsh-genui'
+/** Module id = package name (fork: forever-lwy), read so a rename cannot drift. */
+const ID: string = (JSON.parse(readFileSync(resolvePath(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8')) as { name: string }).name
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url))
 
 /** Module-table entries this bundle may leave external: platform seed rows

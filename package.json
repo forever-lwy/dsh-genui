@@ -1,7 +1,7 @@
 {
-  "name": "@changfenhuang/dsh-genui",
-  "description": "GenUI for DeepSeek Harness: interactive UI components rendered inline in assistant replies via the ```dsh-ui fence — layout, charts, plots, forms, quizzes, mermaid, 3D scenes, and an action event loop back to the model. Ships the fence-teaching host plugin, the browser renderer (client half), and the genui skill.",
-  "version": "0.16.0",
+  "name": "@forever-lwy/dsh-genui",
+  "description": "Fork of @changfenhuang/dsh-genui (forever-lwy): Markdown-first prompting, optional pre-render validation, themeable components, sandboxed ```dsh-html drawing and whole-answer export. GenUI for DeepSeek Harness: interactive UI components rendered inline in assistant replies via the ```dsh-ui fence — layout, charts, plots, forms, quizzes, mermaid, 3D scenes, and an action event loop back to the model. Ships the fence-teaching host plugin, the browser renderer (client half), and the genui skill.",
+  "version": "0.16.1",
   "icon": "./assets/genui-icon.svg",
   "type": "module",
   "main": "lib/index.js",
@@ -61,11 +61,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/omdsh-dev/dsh-genui.git"
+    "url": "git+https://github.com/forever-lwy/dsh-genui.git"
   },
-  "homepage": "https://github.com/omdsh-dev/dsh-genui",
+  "homepage": "https://github.com/forever-lwy/dsh-genui",
   "bugs": {
-    "url": "https://github.com/omdsh-dev/dsh-genui/issues"
+    "url": "https://github.com/forever-lwy/dsh-genui/issues"
   },
   "keywords": [
     "dsh",
@@ -81,25 +81,26 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1 || ^4.0.6-alpha.1",
-    "@deepseek-ai/dsh-agent": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-agent-loop": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-api-session-controller": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-store": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-chat": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-conversation": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-input-trigger": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-renderer": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-session": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-tool": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-llm": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-session": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-skill": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-system-prompt": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-tools": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "@deepseek-ai/dsh-util-values": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
-    "react": "^18.0.0 || ^19.0.0"
+    "@deepseek-ai/dsh-agent": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-api-session-controller": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-store": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-chat": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-input-trigger": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-session": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-client-ui-tool": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-session": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-skill": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-system-prompt": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-tools": ">=0.2.1-rc.5",
+    "@deepseek-ai/dsh-util-values": ">=0.2.1-rc.5",
+    "react": "^18.0.0 || ^19.0.0",
+    "@deepseek-ai/schemastery": ">=3.18.5 <4.0.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.2",
@@ -191,7 +192,8 @@
     "vite": "^6.0.0",
     "vitest": "^3.0.0",
     "yaml": "^2.4.2",
-    "zustand": "5.0.15"
+    "zustand": "5.0.15",
+    "@deepseek-ai/schemastery": "~3.19.0"
   },
   "scripts": {
     "build": "node scripts/clean.mjs && tsc -p tsconfig.json && tsdown",
@@ -211,7 +213,7 @@
   },
   "packageManager": "pnpm@11.7.0",
   "engines": {
-    "dsh": "^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2",
+    "dsh": "*",
     "node": "^22.19.0 || >=24.0.0",
     "pnpm": ">=11.7.0 <12"
   },

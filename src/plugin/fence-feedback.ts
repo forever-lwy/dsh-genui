@@ -517,7 +517,14 @@ function isFeedbackSource(source: { kind?: unknown; plugin?: unknown } | undefin
  * @param enabled - 是否启用同回合围栏修正。
  * @param renderUiToolEnabled - 是否已注册 `render_ui` 工具。
  */
-export function installFenceFeedback(ctx: Context, enabled: boolean, renderUiToolEnabled = true): void {
+export function installFenceFeedback(
+  ctx: Context,
+  enabledInput: boolean | (() => boolean),
+  renderUiToolInput: boolean | (() => boolean) = true,
+): void {
+  // Fork: settings are volatile, so both switches are read per use.
+  const isEnabled = typeof enabledInput === 'function' ? enabledInput : () => enabledInput
+  const renderUiToolOn = typeof renderUiToolInput === 'function' ? renderUiToolInput : () => renderUiToolInput
   const sessions = new Map<string, SessionFeedback>()
   const stateOf = (sessionId: string): SessionFeedback => {
     let state = sessions.get(sessionId)
@@ -656,11 +663,11 @@ export function installFenceFeedback(ctx: Context, enabled: boolean, renderUiToo
     if (options.sessionId === undefined || options.purpose !== undefined) return next()
     const state = sessions.get(String(options.sessionId))
     if (state?.validatedThisTurn !== true || state.isSubagent) return next()
-    return retryReasoningOnlyGenuiStream(options, next(), state, enabled)
+    return retryReasoningOnlyGenuiStream(options, next(), state, isEnabled())
   }, { global: true })
 
   ctx.on('agent/turn-stopping', ({ agent, turn, signal }): void => {
-    if (!enabled) return
+    if (!isEnabled()) return
     // A child session's fence belongs to a parent reply, and an aborted turn is
     // on its way out: never steer into either.
     if (agent.session.header.parentSession !== undefined) return
@@ -682,7 +689,7 @@ export function installFenceFeedback(ctx: Context, enabled: boolean, renderUiToo
       aborted: signal.aborted,
       correctionsThisTurn: usedThisTurn,
       correctionsTurn: state.correctionsTurn,
-      renderUiToolEnabled,
+      renderUiToolEnabled: renderUiToolOn(),
     })
     if (plan === null) return
     // Account BEFORE sending: a re-entrant boundary must not deliver twice.

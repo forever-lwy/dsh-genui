@@ -24,6 +24,7 @@ import { parseDecimalNumber } from './safe-math.ts'
 import { isDatePickerValueValid } from './date-picker.ts'
 import { walkGenuiNodes } from './walk-spec.ts'
 import { repairMap } from './map-data.ts'
+import { applyThemePalette, themeRootProps } from './theme.ts'
 
 export const GENUI_ACTION_DEBOUNCE_MS = 300
 
@@ -164,6 +165,9 @@ function GenuiBlockInstance({ spec, stateKey, animateEntrance = true, initialSta
     return resolveComputedSpec(spec, evaluateComputed(spec, { ...fields, ...numericValues }))
   }, [spec, fields, fieldState.numericValues, fieldKinds])
   const submissionRegistry = useMemo(() => compileSubmissionRegistry(computedSpec), [computedSpec])
+  // Fork: the theme's palette reaches charts without their own; root tokens go inline.
+  const paintedSpec = useMemo(() => applyThemePalette(computedSpec), [computedSpec])
+  const themeProps = useMemo(() => themeRootProps(computedSpec.theme), [computedSpec.theme])
   const answers = useMemo(() => Object.fromEntries(Object.entries(storedAnswers).filter(([group, choice]) => {
     const member = submissionRegistry.members.get(group)
     return member?.kind === 'radio' && member.options.includes(choice)
@@ -287,10 +291,10 @@ function GenuiBlockInstance({ spec, stateKey, animateEntrance = true, initialSta
   }, [spec])
   return (
     <CopyPreviewContext.Provider value={copyPreviews}>
-      <div className={css.block} data-genui>
+      <div className={css.block} data-genui style={themeProps.style} data-genui-surface={themeProps.surface}>
         {computedSpec.title !== undefined && <div className={css.banner}>{renderInline(computedSpec.title)}</div>}
         <div className={css.col} style={{ gap: `${gap}px` }}>
-          {computedSpec.items.map((c, i) => (
+          {paintedSpec.items.map((c, i) => (
             // Keep a trace of rhythm, cap the wait: 90ms per item but never
             // more than 160ms of it, so the last root item is fully visible at
             // ~410ms instead of 1.17s. The uncapped 720ms version made a ready
