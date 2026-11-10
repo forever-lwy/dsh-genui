@@ -24,13 +24,13 @@ const INTRO = `Render UI inside your reply with a fenced \`dsh-ui\` JSON block:
 {"title":"示例","gap":14,"items":[{"type":"text","content":"把这里换成你的组件"}]}
 \`\`\`
 
-Allowed \`type\` values; the \`genui\` skill, when available, carries the full content→component mapping and per-component field details:
+Allowed \`type\` values (one-line roles below). Before writing a fence, call \`genui_docs\` with the components (and topics) you chose to read their fields and examples — only ones not read earlier in this conversation; the \`genui\` skill holds the layout rules:
 
-- 布局: text · row · col · grid · card · carousel · divider · spacer · hero（封面块，一条回答最多一个）
-- 展示: badge · stat · progress · list · table · keyvalue · timeline · file-tree · breadcrumb · callout · steps · diff · json · code · copy · avatar · image · image-group · compare（改动汇报优先）· audio · video · icon · blocks · arrow
-- 图表: chart {"kind":"bars|line|donut","data":[{"label":"...","value":n}]}（series：bars 分组/堆叠 / line 多序列） · echart (preset 名或 option 直通，清单见 skill) · plot (函数图) · svg (单图预览)
-- 交互: button · input · textarea · editor · select · date-picker · segmented-control · checkbox · switch · slider · radio · submit · quiz · choices · link · tabs · accordion · popover
-- 高级: mermaid (流程图/时序/甘特/ER 等，关键字见 skill) · diagram (架构/流程图) · scene3d (3D WebGL) · entity-card`
+- 布局: text 文字 · row/col 横排/竖排 · grid 网格（子节点 span 宽窄混排） · card 卡片 · carousel 横向轮播 · divider 分隔（可带章节名） · spacer 留白 · hero 封面块（一条回答最多一个）
+- 展示: badge 标签 · stat 指标 · progress 进度条/环 · list 列表 · table 表格（排序/筛选/行明细） · keyvalue 键值 · timeline 时间线 · file-tree 目录树 · breadcrumb 路径 · callout 提示框 · steps 步骤 · diff 代码改动 · json · code · copy 可复制文本 · avatar 头像 · image 图片 · image-group 图集 · compare 前后对比（改动汇报优先） · audio · video · icon 图标 · blocks 色块矩阵 · arrow 连接箭头
+- 图表: chart {"kind":"bars|line|donut","data":[{"label":"...","value":n}]}（series：bars 分组/堆叠 / line 多序列） · echart ECharts（雷达/漏斗/热力/桑基等 preset 或 option 直通） · plot 函数图 · svg 单图预览
+- 交互: button 按钮 · input · textarea · editor 文本编辑 · select · date-picker 日期/区间 · segmented-control 分段选择 · checkbox · switch · slider · radio · submit 提交/交卷 · quiz 测验 · choices 带代价的方案选择 · link · tabs 标签页 · accordion 折叠 · popover 浮层说明
+- 高级: mermaid 流程/时序/甘特/ER · diagram 架构/流程图 · scene3d 3D 场景 · entity-card 实体卡 · map 地点地图`
 
 const JUDGMENT = `**默认写 Markdown，不写 dsh-ui。** 会议纪要、总结、报告、说明、教程、邮件、方案、清单这类以文字为主的回答，再长也用标题、列表、加粗和 Markdown 表格；篇幅长、要点多、想显得好看都不是用组件的理由。只有这几种情况才出组件：读者要操作（作答判卷、填选、做决定、筛选数据）；数值要看形状（趋势/占比/分布）；结构或流程画成图明显更清楚；图片前后对照；用户明确要可视化、仪表盘、卡片或页面。
 
@@ -41,10 +41,9 @@ const JUDGMENT = `**默认写 Markdown，不写 dsh-ui。** 会议纪要、总�
 - 组件内文字：支持公式、\`code\`、加粗、高亮、链接；组件字段里不写 Markdown table 与 fenced code，改用 table/code/diff/json。
 - 配色跟随主题，语义需要时才用 \`palette\`/\`card.accent\`；grid 子节点用 \`"span":2\` 做宽窄混排；数据多时给 \`table\`/\`list\` 配 \`input\`(id)+\`filter\`。`
 
-const FIELDS = `**字段速查**（完整见 genui skill）：\`stat\` \`{"type":"stat","label","value"}\` · \`table\` \`{"type":"table","columns":[...],"rows":[[...]]}\` · \`progress\` \`{"type":"progress","value":0-100}\` · \`keyvalue\` \`{"type":"keyvalue","pairs":[{"key","value"}]}\` · \`steps\` \`{"type":"steps","steps":[{"title"}]}\` · \`file-tree\` \`{"type":"file-tree","items":[{"name","type":"file|dir"}]}\` · \`callout\` \`{"type":"callout","content"}\`
-**节点规则：** 组件节点必须带字符串 \`type\`，值为组件名；\`file-tree.items[].type\` 表示 \`file\` 或 \`dir\`。`
+const FIELDS = `**节点规则：** 组件节点必须带字符串 \`type\`，值为组件名；\`file-tree.items[].type\` 表示 \`file\` 或 \`dir\`。`
 
-const THEME = `**主题：** 根级可选 \`"theme":{"accent","radius":"none|sm|md|lg|xl","density":"compact|normal|relaxed","font":"sans|serif|mono|rounded","surface":"default|flat|outline|soft|glass|elevated","background","text","muted","palette":[...],"shadow":"none|soft|strong"}\`；任意节点可带 \`"style":{"background","color","border","borderRadius","padding","fontSize","fontWeight","textAlign","boxShadow",...}\`（CSS 值，禁 url()）。只在用户要特定风格或语义需要时用。`
+const THEME = `**主题：** 根级 \`theme\`（强调色/圆角/疏密/字体/表面/背景/色板/阴影）与任意节点 \`style\` 可定制风格；只在用户要特定风格或语义需要时用，字段读 \`genui_docs\` 的 \`theme\`。`
 
 function misnamedFields(validation: GenuiConfig['validation']): string {
   const tail = validation === 'skip' ? '' : '不确定就调 `validate_dsh_ui`。'
@@ -67,7 +66,7 @@ function htmlRules(html: GenuiConfig['html']): string {
   const scripts = html.scripts ? '可用 <script>（动画/交互/canvas）' : '脚本已禁用，只用 HTML/CSS/SVG'
   const remote = html.remote ? '可加载 https 图片/字体/CDN 脚本' : '不能加载任何外部资源（图片用 data: 或内联 SVG）'
   return `
-- 自定义画面：内置组件表达不了的视觉（海报、插画、动画、特殊排版、小游戏）写 \`\`\`dsh-html 围栏，内容是 HTML 片段（可含 <style>/<svg>/<canvas>），在沙箱里与正文内联渲染、背景透明、高度自适应；${scripts}；${remote}；无网络请求、无页面/Cookie 访问。颜色字体用 var(--dsh-fg/--dsh-muted/--dsh-bg/--dsh-surface/--dsh-border/--dsh-accent/--dsh-font) 跟随主题。${html.scripts ? '用户点击后可调 dsh.action(name, data) 把结果回传给你。' : ''}普通文字、表格和内置组件能表达的不要用它。`
+- 自定义画面：内置组件表达不了的视觉（海报、插画、动画、特殊排版、小游戏）写 \`\`\`dsh-html 围栏（HTML 片段，沙箱内与正文内联渲染、${scripts}、${remote}）；写之前读 \`genui_docs\` 的 \`html\`。文字、表格和内置组件能表达的不要用它。`
 }
 
 /**

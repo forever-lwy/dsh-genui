@@ -14,7 +14,8 @@ import { describe, expect, it } from 'vitest'
 import { processGenuiSpec, isRenderableProcess } from '../src/client/guard.ts'
 import { validateRenderableChartSemantics } from '../src/plugin/chart-contract.ts'
 
-const skill = readFileSync(join(process.cwd(), 'SKILL.md'), 'utf8')
+// Fork: the skill corpus is SKILL.md plus the on-demand reference files.
+const skill = ['SKILL.md', 'reference/components.md', 'reference/topics.md'].map(file => readFileSync(join(process.cwd(), file), 'utf8')).join('\n')
 const blocksOf = (tag: string): string[] =>
   [...skill.matchAll(new RegExp('```json ' + tag + '\\n([\\s\\S]*?)\\n```', 'g'))].map(m => m[1]!)
 const renders = (raw: string): boolean => {
@@ -22,7 +23,7 @@ const renders = (raw: string): boolean => {
   return validateRenderableChartSemantics(spec).length === 0 && isRenderableProcess(processGenuiSpec(spec))
 }
 
-describe('SKILL.md examples', () => {
+describe('SKILL.md + reference examples', () => {
   const good = blocksOf('dsh-ui')
   const bad = blocksOf('dsh-ui-bad')
 

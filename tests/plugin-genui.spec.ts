@@ -83,9 +83,8 @@ describe('genui:fence section', () => {
     expect(text).toContain('never emit these placeholders literally')
     expect(text).toContain('Tool channel: render_ui')
     expect(text).not.toContain('"title":"可选标题"')
-    for (const type of ['stat', 'table', 'progress', 'keyvalue', 'steps', 'file-tree', 'callout']) {
-      expect(text).toContain(`{"type":"${type}"`)
-    }
+    // Fork: the field quick-reference moved to genui_docs; the section points there.
+    expect(text).toContain('genui_docs')
     expect(text).toContain('组件节点必须带字符串')
     expect(text).toContain('file-tree')
     expect(text).toContain('file-tree.items[].type` 表示 `file` 或 `dir`')
@@ -171,10 +170,10 @@ describe('genui:fence section', () => {
 
   it.each([
     // Fork: render_ui is off by default.
-    { name: 'default config', config: undefined, expected: ['validate_dsh_ui'] },
-    { name: 'renderUiTool enabled', config: { renderUiTool: true }, expected: ['render_ui', 'validate_dsh_ui'] },
-    { name: 'renderUiTool disabled', config: { renderUiTool: false }, expected: ['validate_dsh_ui'] },
-    { name: 'renderUiTool and fenceFeedback disabled', config: { renderUiTool: false, fenceFeedback: false }, expected: ['validate_dsh_ui'] },
+    { name: 'default config', config: undefined, expected: ['genui_docs', 'validate_dsh_ui'] },
+    { name: 'renderUiTool enabled', config: { renderUiTool: true }, expected: ['genui_docs', 'render_ui', 'validate_dsh_ui'] },
+    { name: 'renderUiTool disabled', config: { renderUiTool: false }, expected: ['genui_docs', 'validate_dsh_ui'] },
+    { name: 'renderUiTool and fenceFeedback disabled', config: { renderUiTool: false, fenceFeedback: false }, expected: ['genui_docs', 'validate_dsh_ui'] },
   ])('registers the configured model tools with $name', async ({ config, expected }) => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
@@ -209,13 +208,13 @@ describe('genui:fence section', () => {
     })
 
     const first = await ctx.plugin(GenUI, { renderUiTool: true })
-    expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'render_ui', 'validate_dsh_ui'])
 
     await first.dispose()
     expect(registered.size).toBe(0)
 
     const second = await ctx.plugin(GenUI, { renderUiTool: true })
-    expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'render_ui', 'validate_dsh_ui'])
     await second.dispose()
     expect(registered.size).toBe(0)
   })
@@ -233,7 +232,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect([...firstRegistry.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
+      expect([...firstRegistry.keys()].sort()).toEqual(['genui_docs', 'render_ui', 'validate_dsh_ui'])
     })
 
     await disposeFirstRegistry()
@@ -248,7 +247,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect([...replacementRegistry.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
+      expect([...replacementRegistry.keys()].sort()).toEqual(['genui_docs', 'render_ui', 'validate_dsh_ui'])
     })
 
     await genui.dispose()
@@ -270,7 +269,7 @@ describe('genui:fence section', () => {
     })
 
     await vi.waitFor(() => {
-      expect([...registered.keys()]).toEqual(['validate_dsh_ui'])
+      expect([...registered.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     })
 
     await genui.dispose()
@@ -290,7 +289,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect([...firstRegistry.keys()]).toEqual(['validate_dsh_ui'])
+      expect([...firstRegistry.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     })
 
     await disposeFirstRegistry()
@@ -305,7 +304,7 @@ describe('genui:fence section', () => {
       },
     })
     await vi.waitFor(() => {
-      expect([...replacementRegistry.keys()]).toEqual(['validate_dsh_ui'])
+      expect([...replacementRegistry.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     })
 
     await genui.dispose()
@@ -326,17 +325,17 @@ describe('genui:fence section', () => {
     })
 
     const disabled = await ctx.plugin(GenUI, { renderUiTool: false })
-    expect([...registered.keys()]).toEqual(['validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     await disabled.dispose()
     expect(registered.size).toBe(0)
 
     const enabled = await ctx.plugin(GenUI, { renderUiTool: true })
-    expect([...registered.keys()].sort()).toEqual(['render_ui', 'validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'render_ui', 'validate_dsh_ui'])
     await enabled.dispose()
     expect(registered.size).toBe(0)
 
     const disabledAgain = await ctx.plugin(GenUI, { renderUiTool: false })
-    expect([...registered.keys()]).toEqual(['validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     await disabledAgain.dispose()
     expect(registered.size).toBe(0)
   })
@@ -384,7 +383,8 @@ describe('genui:fence section', () => {
     const declared = /^description:\s*(.+?)\s*$/mu.exec(front)?.[1]?.replace(/^['"]|['"]$/gu, '')
     expect(declared, 'SKILL.md must declare a description').toBeDefined()
     expect(skill?.description).toBe(declared)
-    expect(skill?.content).toContain('chart:')
+    // Fork: per-component fields live in reference/ (genui_docs), the skill points there.
+    expect(skill?.content).toContain('genui_docs')
     expect(skill?.content).not.toContain('name: genui')
 
     await genui.dispose()
@@ -444,7 +444,7 @@ describe('genui:fence section', () => {
     emitAssistantReply(ctx, session)
     emitTurnStopping(ctx, session, steer)
 
-    expect([...registered.keys()]).toEqual(['validate_dsh_ui'])
+    expect([...registered.keys()].sort()).toEqual(['genui_docs', 'validate_dsh_ui'])
     expect(steerCalls).toBe(1)
     await genui.dispose()
     expect(registered.size).toBe(0)
