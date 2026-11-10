@@ -38,8 +38,7 @@ describe('section text', () => {
     expect(buildGenuiSectionText(config({ html: { enabled: false } }))).not.toContain('dsh-html')
     expect(buildGenuiSectionText(config({ html: { scripts: false } }))).toContain('脚本已禁用')
     expect(buildGenuiSectionText(config({ html: { remote: true } }))).toContain('可加载 https')
-    expect(buildGenuiSectionText(config({}))).toContain('dsh.action(name, data)')
-    expect(buildGenuiSectionText(config({ html: { scripts: false } }))).not.toContain('dsh.action')
+    expect(buildGenuiSectionText(config({}))).toContain('读 `genui_docs` 的 `html`')
   })
 
   it('mentions render_ui only when that tool is on (off by default)', () => {
@@ -142,11 +141,9 @@ describe('SKILL.md passages', () => {
     expect(adaptSkillContent(skill, config({ validation: 'uncertain' }))).toContain('拿不准再验')
   })
 
-  it('carries the dsh-html section only when drawings are on, and the script note per setting', () => {
-    expect(adaptSkillContent(skill, config({}))).toContain('## 自定义画面：```dsh-html')
-    expect(adaptSkillContent(skill, config({ html: { enabled: false } }))).not.toContain('## 自定义画面')
-    expect(adaptSkillContent(skill, config({ html: { scripts: false } }))).toContain('**脚本已禁用**')
-    expect(adaptSkillContent(skill, config({}))).not.toContain('**脚本已禁用**')
+  it('points at the html topic only when drawings are on', () => {
+    expect(adaptSkillContent(skill, config({}))).toContain('`html`：```dsh-html 自定义画面')
+    expect(adaptSkillContent(skill, config({ html: { enabled: false } }))).not.toContain('dsh-html 自定义画面')
   })
 
   it('leaves no markers behind and keeps unknown keys', () => {

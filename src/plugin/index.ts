@@ -24,6 +24,7 @@ import { installDshGoNative } from './dsh-go-native.ts'
 import { buildGenuiSectionText } from './prompt.ts'
 import { snapshotGenuiConfig, type GenuiConfig } from './config.ts'
 import { adaptSkillContent } from './skill-content.ts'
+import { createGenuiDocsTool } from './docs.ts'
 
 /* ---------------- lazy engine asset route ---------------- */
 
@@ -171,6 +172,7 @@ export function apply(ctx: Context, input?: unknown): void {
   // starts whenever tools becomes available and unloads its registrations
   // before either the service or this plugin is replaced. A settings change
   // that adds or removes a tool re-registers the set.
+  const docsTool = createGenuiDocsTool(() => config)
   let toolsCtx: Context | undefined
   let disposeTools: () => void = () => {}
   let registered = ''
@@ -182,6 +184,8 @@ export function apply(ctx: Context, input?: unknown): void {
     const disposers: Array<() => void> = []
     if (config.renderUiTool) disposers.push(scope.tools.register(createRenderUiTool()) as unknown as () => void)
     if (config.validation !== 'skip') disposers.push(scope.tools.register(createValidateDshUiTool()) as unknown as () => void)
+    // Fork: component details are read on demand instead of living in the skill body.
+    disposers.push(scope.tools.register(docsTool) as unknown as () => void)
     registered = wanted
     disposeTools = () => {
       for (const dispose of disposers.splice(0)) dispose()

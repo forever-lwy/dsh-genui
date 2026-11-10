@@ -29,8 +29,6 @@ description: "Render interactive UI, charts, diagrams or custom drawings inline 
 
 围栏位置：只写在**回答正文**里。写进 reasoning / 思考块不会渲染，用户看不到。
 
-公式：`$...$` / `\(...\)` 为行内公式，`$$...$$` / `\[...\]` 为独立公式；支持矩阵、分段函数、多行对齐推导，以及加粗/高亮内的公式。正文、列表、键值、表头/单元格、卡片/步骤/时间线/标签页标题、题目与说明、按钮与表单标签、指标、媒体说明和图表外层标题共用此能力。JSON 字符串中的反斜杠必须双写，如 `"content": "\\(\\frac{a}{b}\\)"`。代码源码、输入值/占位符、原生下拉选项和图表引擎内部绘图文本仍遵循各自的原生格式，不解析富文本。数学语法以 KaTeX 为准，不执行 HTML、外部资源或脚本；不支持 LaTeX 文档编译、加载任意宏包。
-
 ## 组件词汇（只允许这些 type）
 
 布局：`text` `row` `col` `grid` `card` `carousel` `divider` `spacer` `arrow` `hero`
@@ -39,107 +37,18 @@ description: "Render interactive UI, charts, diagrams or custom drawings inline 
 交互：`button` `input` `select` `checkbox` `radio` `switch` `slider` `textarea` `editor` `date-picker` `segmented-control` `tabs` `accordion` `copy` `link` `submit` `popover`
 高级：`svg` `mermaid` `diagram` `scene3d` `quiz` `entity-card`
 
-### 布局
-- text: `{"type":"text","size":"display|h1|h2|h3|body|muted|caption","content":"...","align":"left|center|right"?}`（`tone:"danger|success|warning|info|muted"` 给整行文字上语义色，不用套 badge；`mono:true` 走等宽字体，用于十六进制/二进制/标识符，不带行内代码底色）（`size:"display"` 比标题大一档，作引言/开篇点题句，**一条回答 ≤1**；`center:true` 是旧写法，等价 `align:"center"`，新写一律用 `align`）
-- row / col: `{"type":"row"|"col","items":[...],"wrap":true?,"spacer":true?,"gap":n?}`；`row.justify:"center"` 主轴居中（图标+标题那种图头）；`col.width:n`（1-100）给这一列占行宽的百分比，不写就按内容宽
-- grid: `{"type":"grid","cols":n,"items":[...]}`；`columns` 可作为 `cols` 的别名，校验会提示使用规范字段。
-- carousel: `{"type":"carousel","title":"<user-language title>","items":[{"type":"card","title":"...","items":[...]}],"itemWidth":240?,"gap":3?}` — 原生节点横向滚动；最多 24 项，宽度 80–640px 且不超过轨道宽度的 85%；默认宽度 240px。`gap` 数值乘以 4px，省略时为 12px，负数按 0 处理。导航按钮每次滚动轨道宽度的 85%，仅在内容溢出时显示，触摸设备直接滑动轨道。不自动播放。轨道聚焦时支持左右键 / Home / End，卡片内表单按原提交规则工作。浏览与滑动不发 action；子组件自身声明的 action 按既有交互规则触发。流式输出只在尾部追加卡片以保留已有输入路径。
-- hero: `{"type":"hero","title":"<user-language title>","subtitle":"<user-language text>","value":"99.96%","label":"<user-language metric>","delta":"+0.02%","spark":[...],"tone":"accent|success|warning|danger"}` — **封面块**：eyebrow + 超大数字（52px，带入场计数）+ 标题 + 副标题 + tone 渐变底色。**一条回答最多用一个**，放在最前面当视觉锚点
-- span: 任意节点都可加 `"span":2`（grid 子节点占几列）——bento 排版的唯一原语：一张 `span:2` 宽卡配一张窄卡，比一列方块堆下去好看得多
-- card: `{"type":"card","title":"...","items":[...]}`；`"tone":"info|success|warning|danger"` 给卡片语义底色（用于结论卡/风险卡）；`"accent":"#f59e0b"` 指定强调色（边框 + 标题 + 极淡底色）；`"flat":true` 去掉阴影、换成极淡中性底——**图里的面板必须用 flat**，否则每层都像浮起的卡片，叠两层就脏了；`"eyebrow":"<user-language 小引题>"` 在标题上方加一行 meta 小字（把多张卡分章时用——**连续同章的卡片不要每张都加**，一段回答 ≤3 个）
-- palette: `chart` / `echart` 都支持 `"palette":["#ff8800","#3ecf8e"]` 覆盖分类色板（默认跟随宿主主题）。**只有语义上需要指定颜色时才写**（成本=红、收益=绿），否则跟随主题更稳
-- divider: `{"type":"divider"}`；**带章节名** `{"type":"divider","label":"<user-language 章节名>"}`（线 + 小标签居中，作章节切换：报告从摘要切入数据、图表册开新章时用一段；卡片/列表内部、连续同主题内容之间**不要用**，一条回答 ≤3 个）; spacer: `{"type":"spacer"}`
-
-### 展示
-- stat: `{"type":"stat","label":"...","value":"...","delta":"+12.4%|-3%"}`（`-` 开头自动红、`+` 绿）；可选 `"spark":[3,5,4,8,6]` 画一条微趋势线（2–60 个有限数值）；`"size":"hero"` 渲染超大数字（一条回答最多用一次，作为视觉锚点）
-- badge: `{"type":"badge","label":"...","tone":"success|warn|danger|accent","icon":"emoji?"}`
-- progress: `{"type":"progress","label":"...","value":0-100,"valueLabel":"70%"}`；`"variant":"ring"` 画环形进度，`"target":70` 在轨道上标出目标刻度
-- avatar: `{"type":"avatar","name":"...","color":"#hex?"}`
-- image: `{"type":"image","src":"/mmx-files/result.png","alt":"<user-language description>"}` — 展示浏览器可访问的 http(s) 或同源相对图片地址；懒加载；不支持 `file:`/`data:` 等本地或主动协议；`"caption":"<user-language 图注>"` 在图**下方**加说明行（来源/解读/署名；`alt` 是图**上方**的标签行，两者分工不同）
-- image-group: `{"type":"image-group","title":"<user-language title>","items":[{"src":"/mmx-files/a.png","alt":"<description>","caption":"<caption>"},{"src":"/mmx-files/b.png","alt":"<description>"}]}` — 最多 24 张图片按长宽比自适应换行；点击原生 lightbox 放大，左右键 / Home / End 切图，Esc / 关闭按钮返回并恢复焦点。沿用 image 的 http(s) / 相对地址限制；不接受 file/data/javascript。只做本地浏览，不发 action；需要模型动作请在旁边放独立 button。追加 / 重排保留当前 src；当前图片移除后关闭查看器；相同 src 按出现次序区分。空列表与图片加载失败都有明确状态。导出 HTML 不内嵌图片字节，图片仍依赖原地址。[完整用法与验收](docs/gallery.md)。
-- compare: `{"type":"compare","title":"<user-language title>","before":{"src":"/shot-before.png","label":"<user-language label>","caption":"<caption>"},"after":{"src":"/shot-after.png","label":"<user-language label>"},"mode":"side|stack|slider","height":260}` — **两张图成对呈现**：改动前后、方案 A/B、原图与重绘。`before`/`after` 都必填，缺一侧整节点丢弃（不是降级成单图）。`mode`：`side`（默认，容器够宽时并排，窄于 560px 自动竖排）、`stack`（始终竖排，适合长截图）、`slider`（单框中间一条可拖动分割线，指针拖动 / 触摸 / 方向键 / Home / End 都能用）。`height` 是框高上限 120–640（默认 260），图片按 contain 装进框内、不裁切。标签 `label` 常显，不靠悬停；点击图片原地开原生对话框放大，Esc / 关闭返回并恢复焦点。图片地址沿用 image 的 http(s) / 相对地址限制；只做本地浏览不发 action。**汇报改动（修了什么、前后差异）时默认用它**，而不是表格或纯文字清单——读者要的是「变成什么样了」，不是字段名。只在两张图必须被对照阅读时才用；同一批无关截图用 image-group。
-
-**本机截图怎么进回答**：`image` / `image-group` / `compare` 的 `src` 只接受浏览器能拿到的地址。本机文件走宿主已有的鉴权文件路由，直接写 URL，不用搬文件、不用配目录：
-`/api/file?path=<绝对路径，percent-encoded>`（例：`/api/file?path=%2FUsers%2Fme%2Fproj%2F.a.png`）。宿主用同一个路由渲染 Markdown 里的本地图片，支持 png/jpeg/webp/gif/svg，带大小上限与沙箱策略。典型用法：同一处改动前后各截一张，用 `compare` 摆出来，而不是用文字描述"改了什么"。
-- audio: `{"type":"audio","src":"/mmx-files/result.mp3","alt":"<user-language description>","loop":true?}` — 原生控制条；用户主动播放，不自动播放；仅 http(s) 或同源相对地址
-- video: `{"type":"video","src":"/mmx-files/result.mp4","alt":"<user-language description>","poster":"/mmx-files/poster.jpg"?,"loop":true?,"muted":true?,"aspectRatio":"16:9|4:3|1:1|9:16"?}` — 原生播放/音量/全屏控制；不自动播放
-- list: `{"type":"list","items":["..."] 或 [{"title":"...","desc":"..."}] 或嵌套节点(如 {"type":"badge","label":"TS"})}` — 行内可嵌节点（计入节点预算）；记录中的 `label`/`name` 归一化为 `title`，`description`/`content`/`text`/`body`/`detail` 归一化为 `desc`；只有正文时将正文用作标题，未知字段会收到警告
-- table: `{"type":"table","columns":["..."],"rows":[["...","..."]],"types":["text|num|delta|bar|badge"]?,"details":[[...]]?,"total":true?}` — 表头点击本地排序（升/降/还原，零往返）；数值感知：千分位（`1,234`）、`k/m/b`、`万/亿`、`%`、货币符号都能按真实数值比较，纯数值列自动右对齐；**带符号单元格自动着色**（`+12.4%` 绿、`-3` 红，无需额外字段）；`types` 可按列指定 `bar`（0-100 内联进度条）、`ring`（0-100 小环）、`spark`（单元格写 `"3,5,4,8"` 画微趋势线）、`badge`（胶囊标签）、`delta`（强制涨跌色）、`num`（强制右对齐）、`index`（行号）、`group`（首列当分组标题：该行只有第一格有内容时渲染成跨列小标题）；`"total":true` 追加合计行（数值列自动求和）；**`"export":true`**：表格上方出现「复制 Markdown / 复制 CSV」两个小按钮（纯本地剪贴板，不发请求）；**`"filter":"输入框id"`**：把表格和某个 input/select 绑定，读者输入即时过滤（`filterColumn` 可限定列）——数据多时**默认就该配一个**；**`"sortField":"下拉id"`** 用下拉的值（列名）排序；**`"details"` 与 rows 同序**，第 i 项是该行展开后的内容（可放任意组件，`null` = 该行不可展开）——首列出现 chevron，点开在整行下方展开明细，适合「主表 + 明细」；**`"wrap":true`** 开启长文本排版：单元格、长标识符和行内代码自动折行，保留显式换行；列有可读宽度下限，窄容器仍可横向滚动，嵌套表格独立选择模式（默认关闭，数据表保持单行紧凑；当某列是整句描述时开启）
-- keyvalue: `{"type":"keyvalue","pairs":[{"key":"...","value":"..."}]}`
-- timeline: `{"type":"timeline","items":[{"title":"...","desc":"...","time":"..."}]}`
-- file-tree: `{"type":"file-tree","items":[{"name":"...","type":"file|dir","children":[...]?}]}` — 目录行可点击折叠/展开（本地，零往返）
-- breadcrumb: `{"type":"breadcrumb","items":["<user-language text>","<user-language text>","<user-language text>"]}`
-- diff: `{"type":"diff","diffs":[{"path":"...","oldText":"..."|null,"newText":"..."}]}`
-- json: `{"type":"json","value":...}`（JSON 树查看器）
-- code: `{"type":"code","lang":"ts","code":"..."}`
-- callout: `{"type":"callout","tone":"info|success|warning|error","title":"...","content":"..."}` — 用于单条强调、提醒或风险摘要；`content` 是文本字符串，可用 JSON `"\n"` 分行。多条独立事项用 `list` 的 `{title,desc}` 保留逐项层次
-- steps: `{"type":"steps","current":n,"steps":[{"title":"...","desc":"..."}]}`
-- arrow: `{"type":"arrow","dir":"down|right","length":16-96,"label":"..."}` — 图里两个块之间的**细线连接件**（1.4px 线宽 + V 形箭头，固定长度）。上下流程图一律用它，**不要用文字「↓」**：字符箭头跟着文字基线走，撑不开间距
-- icon: `{"type":"icon","name":"Nodes","tone":"info|success|warning|danger|muted|default","size":16|20|24|32,"tile":true,"label":"<user-language 无障碍名>"}` — 内置图标集（749 个可忠实渲染；64 个内联秒开，其余首次使用时载入，完整名单见 ICON-NAMES.md）。`tile:true` 画成**淡色圆角方底**，用于阶段卡/语义标记；不带 `tile` 是跟随文字色的行内图标。`label` 可省略（纯装饰），成对出现时只给一个加 label
-- blocks: `{"type":"blocks","title":"...","rows":[{"label":"初始","cells":["0","1","2"],"color":"#64748b"}],"columns":n?,"caption":"..."}` — **色块图解**：按行分组的格子。三种形态同一个结构：① 阶梯图（每行格子数不同，各行自己等分宽度，如 8→4→2→1）② 等分块（一行 4 块）③ 泳道图（`columns` 固定列数，`cells` 里写 `"—"` 或留空）。`color` 省略时用强调色淡底；文字颜色按亮度自动反转（深底白字/浅底黑字）。**有「分成几份、逐轮推进、分组对照」的结构就用它，不要手写 svg 坐标。** `caption` 必写：一句话说明每格代表什么
-  - 行级 `"variant":"outline"`：细边框不填充，用于**矩阵**（每格都是一个框）；`"variant":"plain"`：连框都不画，用于**位串**（`1 0 1 0 0 0 0 0` 读起来是数字不是表格）——只有带 `tone`/`color` 的格子会画出底色
-  - 格子可以写成对象：`{"text":"1","tone":"danger","sub":"SF"}` —— `tone`（accent/success/warning/danger/muted）给**单个格子**上语义色，`sub` 在格子下方挂一行小字（位名、序号、角色）。`color` 可显式指定十六进制，优先于 tone
-  - 例：`{"columns":8,"rows":[{"variant":"outline","cells":[{"text":"1","tone":"danger","sub":"SF"},"0","1","1","0","0","1","0","0"]}],"caption":"最高位为 1，所以 SF=1。"}`
-
-内置图标名：以下 **64 个内联在包里、立即渲染**，优先从这里面选：
-
-Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown ArrowUp ArrowRight ArrowLeft ArrowCurvedRight Function Functions Operator Atom Nodes Connect Share Branch Grid GridAlt Stack Cube Storage Chart Trending Pulse Speed Timer Clock TableFilled Code SquareCode Terminal File FileCode Folder Link Paperclip Lightbulb Book BookOpen GraduationCap Flask Lab Brain Robot Sparkles ShieldCheck Lock Globe WebsiteNetwork Search MagnifyingGlassSearch PluginPuzzle Settings Bolt Compass
-
-其余 **685 个按需载入**（首次用到时拉取约 1 MB，此后本页全部可用）。完整名单在本 SKILL 同目录的 `ICON-NAMES.md`——需要猜名字时读它或 grep 它，不要在对话里穷举。
-### 图表
-- chart: `{"type":"chart","kind":"bars|line|donut","data":[{"label":"...","value":n,"color":"#hex?"}],"series":[{"label":"...","data":[...]}]?,"horizontal":true?}` — bars 默认；line 趋势；donut 占比；**series：bars 是分组柱，line 是多序列折线；每个 `series[].data` 使用 `[{"label":"Q1","value":30},{"label":"Q2","value":45}]` 这样的对象数组，不是 `[30,45]` 这样的纯数字数组**；**`horizontal:true` 画横向柱**（排行/长标签首选）；**`stacked:true` 把 series 堆叠**（构成/占比随时间）；堆叠段够高时数值直接印在段内，鼠标悬停任意柱/段/点/扇区都会弹出即时 tooltip（堆叠显示该段数值 + 合计）。v3 渲染：宽度自适应、Y 轴 1/2/5 刻度、单序列负值在零线以下真实绘制、line 带面积渐变与抽稀 X 标签、donut 图例显示数值与百分比。**≤8 个点的快速对比用 chart；多序列、需要缩放/交互或数据量大时用 echart**
-- plot: `{"type":"plot","series":[{"expr":"a*sin(b*x)","label":"...","color":"#hex?","params":[{"name":"a","value":1,"min":0,"max":5,"animateTo":3,"durationMs":4000,"loop":true},{"name":"b","value":1,"min":0.5,"max":5}]}],"xMin":-6.28,"xMax":6.28,"title":"..."}` — SVG 函数图；**series 可带 `"kind":"line|area|scatter"`**（缺省 line；area 填色到基线；scatter 散点）；**params 渲染成实时滑块**（拖动即时重绘，**y 轴锁定**=只变曲线不变数轴）；**animateTo 参数会显示播放按钮**（自动动画演示）；SVG 可拖拽平移、滚轮缩放；表达式支持 sin/cos/tan/asin/acos/atan/sqrt/cbrt/exp/log/ln/abs/floor/ceil/round/min/max/pow，常量 pi/e/tau，变量 x（其他字母=参数）
-- echart: `{"type":"echart","title":"...","height":300,"preset":"bar|line|area|pie|scatter","data":[{"label":"...","value":n}],"series":[...]?}` — **ECharts 全功能图表**，视觉效果远超 `chart`（渐变、tooltip、动画、图例交互）；**preset 模式**：用和 `chart` 一样的 `data`/`series` 格式，自动构建主题化的 ECharts 配置（颜色跟随宿主主题）；**preset 一览**（只写 preset + data/series/links，主题自动跟随）：
-`bar` · `line` · `area` · `pie` · `scatter` · **`radar`**（每 series 一个多边形，指标取第一条 series 的 label）· **`gauge`**（每个 datum 一个仪表，适合单 KPI）· **`funnel`**（漏斗/转化）· **`treemap`**（体积/层级占比）· **`sankey`**（流向，用 `links:[{from,to,value}]`）· **`graph`**（关系图，`links` 驱动，节点大小随连接数）· **`heatmap`**（`series` 当行、第一条 series 的 label 当列）· **`bigline`**（长序列 + 内置缩放）· **`wordCloud`**（词云，`data:[{label,value}]` 的 value 表示权重；颜色跟随 `palette` 或主题调色板）
-**full option 模式**：传 `"option":{...}` 直接写 ECharts 原生配置（支持 ECharts 内置图表及已注册的 `wordCloud` 词云扩展；其他第三方扩展不保证可用），option 中的函数会被过滤（只接受数据）。选择原则：**chart 轻量（无额外下载）适合 ≤8 点的快速对比；echart 视觉更丰富（渐变、tooltip、图例交互、dataZoom），但会按需下载约 1MB 引擎，多序列/大屏/交互场景优先**
-
-### 交互
-**本地优先（v2.6）**：UI 自己能做的状态变化——判卷、判题、重置、展开、选中——一律本地即时完成，**零模型往返**。action 只用于必须模型参与的事（生成新内容、执行工具、下一步建议）。**交互组件必须带 action：不带 action 的按钮渲染为禁用态，用户点不了；带 action 的按钮点击后有「已触发」本地反馈。**
-- button: `{"type":"button","label":"...","tone":"primary|danger|success|ghost","full":true?,"small":true?,"icon":"emoji?","action":"refresh"?}`
-- **秘密禁令**：不得索取或生成密码、API Key、访问令牌、恢复码等秘密输入；遇到此类需求直接拒绝并解释
-- input: `{"type":"input","label":"...","placeholder":"...","inputType":"text|email|color|number","value":"...","action":"name"?,"id":"field-id"?}` — `color` 使用浏览器原生取色器，值使用 `#RRGGBB`；`number` 可作为 Computed 数值输入；action 在失焦**和回车**时触发（回车带 `submit:true`）；**blur 仅值有变化才发送**（聚焦又离开不产生空往返）；payload 带 `id` 帮模型定位字段；带 `id` 的值刷新后保留、并被 submit 收集进 `fields`
-- select: `{"type":"select","label":"...","options":["...","..."],"selected":下标?,"action":"pick"?,"id":"field-id"?}` — `selected` 预选某选项（缺省显示「请选择…」占位，不静默预选第一项）；带 `id` 的选择跨刷新保留并进 submit 的 `fields`
-- date-picker: `{"type":"date-picker","label":"...","mode":"single|range","value":"YYYY-MM-DD 或 YYYY-MM-DD/YYYY-MM-DD","min":"YYYY-MM-DD","max":"YYYY-MM-DD","id":"field-id"}` — 使用浏览器原生日期控件；日期必须是真实日历日期，范围模式的值是开始和结束日期组成的 ISO 区间；范围输入完整且有效后，带 `id` 的值进入共享状态与 submit 的 `fields`
-- segmented-control: `{"type":"segmented-control","label":"...","options":["...","..."],"value":"...","id":"field-id","action":"pick"}` — 胶囊式单选控件；带 `id` 时选中值进入共享状态，可用于 `when` 更新同级组件，也会进入 submit 的 `fields`；`action` 可选，设置后每次选择都会发送该 action
-- checkbox: `{"type":"checkbox","label":"<user-language option>","checked":true?,"action":"toggle"?,"group":"group-id"?}` — 默认保持逐次 `action` 行为；**加 `group` 进入多选聚合模式**：同组 checkbox 可反复勾选/取消，变化只在本地记录、不发逐次 action，兄弟 `submit` 一次性把该组已选 label 作为字符串数组放进 `answers`（例如 `{"styles":["<user-language option>","<user-language option>"]}`）
-- slider: `{"type":"slider","label":"...","min":0,"max":100,"step":1,"value":n?,"action":"name"?,"id":"field-id"?}` — 数值表单滑块：实时显示数值；带 `id` 跨刷新保留并进 submit 的 `fields`（拖拽经防抖合并成一次 action）
-- radio（**legacy，仅用于兼容老围栏**：试卷与决策都改用 `choices`。`choices` 的 `group` + `answer` + `explanation` + 兄弟 `submit` 已覆盖本地判分，且每个选项还能带代价与证据。新回答不要再用 radio）: `{"type":"radio","label":"<user-language label>","options":["<user-language option>","<user-language option>"],"selected":n?,"action":"pick"?}` — 单选；**加 `"group":"group-id"` 进入聚合模式**：选择只本地记录、不发往返；可设置 `"answer":正确下标或标签` 和 `"explanation":"<user-language explanation>"`，在纯 radio 且没有其他待发送表单状态时本地判卷
-- choices: `{"type":"choices","title":"<user-language title>","prompt":"<user-language question>","mode":"single|multi","max":2,"submit":"<button label>","action":"<action>","items":[{"label":"<option>","hint":"<one-line cost>","meta":"P0","recommended":true},{"label":"<option>","hint":"...","disabled":true,"reason":"<why unavailable>"}]}` — **要读者做决定的列表**，不是读的列表：每个选项自带一行代价（`hint`）、可选证据（`meta`，右对齐等宽）、`recommended` 推荐标记、`disabled` + `reason`（保留在列表里而不是删掉，读者要看得到为什么不行）。`mode` 默认单选；`multi` 配 `max` 控制上限。选中的行左侧有强调条 + 淡底，提交后显示「已发送 · 仍可修改」并且**允许继续改**（改了就清掉已发送状态）。`action` 缺省时选择完全留在本地；有 `action` 时提交回传 `{question, selected, mode}`。最多 8 项——超过 8 项说明这是一张表，不是一次选择。
-- link: `{"type":"link","label":"...","href":"https://..."?}` — 仅 http(s)/mailto 协议被接受；无 `href` 时渲染为纯文本样式（不会假装可点）
-- when（**任何节点都能带的条件显隐**）: `{"field":"<id 或 group>","op":"eq|neq|in|not-in|gt|gte|lt|lte|empty|not-empty|checked","value":...}` — 条件读的是**当前 block 自己的状态**：`input/select/slider/textarea/editor/date-picker/segmented-control/map/diagram` 按 `id`，`radio/checkbox/choices` 按 `group`。满足才渲染，不满足整棵子树都不出现；状态变化即时生效，不需要模型往返。字段显隐条件不能互相形成循环引用。
-  - **典型用法**：选了「公司主体」才出现「税号」；金额 > 1000 才出现「分期」；选了「自定义」才展开参数（`eq`）；多选里含「其他」才出现补充输入（`in`）。
-  - **两条硬规则**：① 隐藏节点不渲染，读者看不到就绝不会提交它的旧值（`submit` 的 `fields`/`answers` 会剔除隐藏键）；② 隐藏字段不算「未填」，不会把提交按钮卡成不可用。
-  - 缺省行为：没有 block 状态时（导出 HTML、面板无 provider）条件无法求值，节点**保持可见**——宁可多显示，也不静默删掉导出文档的一整个分支。
-  - `in`/`not-in` 的 `value` 必须是数组；`gt`/`gte`/`lt`/`lte` 两边都按数字比较，非法数字视为不满足。
-- submit: `{"type":"submit","label":"<user-language action>","action":"grade","groups":["q1","styles"],"resetAction":"redo"?}` — 聚合按钮：`groups` 引用当前 block 中的 submission member key，来源为 `radio.group`、`checkbox.group`、`input.id`、`textarea.id`、`editor.id`、`select.id`、`slider.id`、`date-picker.id`、`segmented-control.id`、`map.id`、`diagram.id`；radio 需已选择，checkbox 组需至少选择一项，普通 field 的值需在 trim 后非空。`groups` 控制提交所需成员与完成进度；未设置时，至少有一个已完成成员即可提交。纯 radio 范围含 `answer` 且本次没有范围外 payload 时可本地判卷；其余场景一次发送 `[genui-action]`，payload 继续收集当前 block 中已填写的表单状态，字段名称保持 `answers`、`fields`、`total`、`answered`
-- switch: `{"type":"switch","label":"...","checked":true?,"action":"toggle"?}`
-- textarea: `{"type":"textarea","label":"...","placeholder":"...","rows":n?,"value":"...","action":"save"?,"id":"field-id"?}` — action 在失焦和 **Ctrl/Cmd+Enter** 时触发；blur 仅值有变化才发送；带 `id` 的值刷新后保留
-- editor: `{"type":"editor","id":"draft","label":"正文","value":"初始文本","placeholder":"继续编辑","rows":8}` — 纯文本编辑；编辑内容实时同步到当前区块；启用状态持久化且存储成功时，刷新可以恢复；可复制当前文字；带 `id` 的值也可由 sibling `submit` 统一提交
-- entity-card: `{"type":"entity-card","name":"Ada Lovelace","image":"https://example.com/ada.png","description":"数学家","metadata":[{"label":"领域","value":"计算机科学"}],"href":"https://example.com/source","sourceLabel":"来源","actions":[{"label":"查看详情","action":"open-ada"}]}` — 展示实体图片、名称、描述、元数据、来源链接和操作按钮；操作按钮通过 `action` 发送给宿主
-- popover: `{"type":"popover","label":"说明","content":"补充信息","trigger":"click","placement":"top"}` — 补充说明可设为 `click` 或 `hover` 触发；支持键盘焦点、Escape 和外部点击关闭，位置会在视口边缘自动调整
-- tabs: `{"type":"tabs","tabs":[{"label":"...","items":[...]}]}` — 空 tab 可以省略 `items`，会按空数组处理
-- accordion: `{"type":"accordion","items":[{"title":"...","items":[...]}]}`
-
-```json dsh-ui
-{"items":[{"type":"date-picker","label":"Travel dates","mode":"range","value":"2026-10-12/2026-10-18","min":"2026-10-01","max":"2026-10-31","id":"travel_dates"},{"type":"segmented-control","label":"View","options":["Agenda","Map"],"value":"Agenda","id":"view"},{"type":"text","content":"Map view selected","when":{"field":"view","op":"eq","value":"Map"}}]}
-```
-- copy: `{"type":"copy","label":"<user-language action>","text":"<user-language text>","expandable":true?,"previewLines":n?}` · [docs/copy-preview.md](docs/copy-preview.md)
-
-**状态持久化（v2.7）**：radio 答案、checkbox 分组选择、交卷锁定、输入值和 Editor 草稿按「会话 + 内容指纹」自动保存——用户刷新页面/重开会话，同一块 UI 的状态原样恢复；你重渲染**相同内容**会保留用户状态，渲染**新内容**（换题等）自动从头开始。
-
-```dsh-ui
-{"items":[{"type":"editor","id":"reply","label":"回复草稿","value":"你好，","rows":6},{"type":"entity-card","name":"Ada Lovelace","description":"数学家","metadata":[{"label":"领域","value":"计算机科学"}],"href":"https://example.com/ada","actions":[{"label":"查看详情","action":"open-ada"}]},{"type":"popover","label":"保存说明","content":"编辑内容会保存在当前区块中。","trigger":"click","placement":"top"}]}
-```
-
-**卷子模式（多道选择题）**：每题一个 radio（带唯一 `group` + `answer` + `explanation`），最后放一个 submit（`groups` 列出全部题号）——用户全部选完点交卷，**分数和对错当场在 UI 里出现**，不用等你。只有换新题/进阶建议才发 action。不要每题单独发 action（会刷屏）。
-
-### 高级
-- svg: `{"type":"svg","title":"<user-language title>","height":300,"code":"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 100\"><rect width=\"200\" height=\"100\" fill=\"#534ab7\"/></svg>"}` — 独立 SVG 图片预览；`title`/`height` 可省略，height 为 100–800，code 最多 12,000 字符，超限会拒绝而不会截断；验证工具返回字段路径、实际长度和上限，请精简或拆成多个 svg 后重验。裸 svg 围栏预览使用相同上限。必须提供完整 SVG 文档（含 xmlns），建议带 viewBox。使用隔离图片模式，不支持脚本、宿主 CSS 或外部资源；图形无法加载时显示源码和提示。**放在 dsh-ui 围栏中；这不是 ECharts renderer 配置。**
-- 也可以直接输出 ```svg 代码围栏（不带 dsh-ui 包装）：会自动显示为「预览/源码」切换的图形预览，源码可复制；无法解析时保留源码并提示。
-- mermaid: `{"type":"mermaid","code":"graph TD\\nA-->B"}` — flowchart/sequence/class/gantt/pie/er/state/journey；主题自动跟随宿主（暗/浅）
-- diagram: `{"type":"diagram","kind":"architecture","id":"selectedNode","title":"<user-language title>","variant":"light|dark|editorial","nodes":[...],"edges":[...],"theme":{...}}` — **编辑级交互图解**（27 种视觉类型）。节点: `{"id":"a","label":"<user-language label>","description":"<detail shown after selection>","type":"focal|backend|store|external|input|optional|security","x":40,"y":40,"w":128,"h":48,"sub":"<user-language text>","tag":"<user-language text>"}`；边: `{"from":"a","to":"b","label":"<user-language label>","kind":"solid|dashed|accent|link"}`。用户可点击节点或按 Enter / Space 选择节点；图解会突出选中节点并显示说明。`id` 指定共享字段，所选节点 ID 可供其他组件的 `when.field` 读取。选择在本地更新，不触发模型 action。**规则由渲染器强制**: 正交连接器（r=8 弯折、禁止斜线）、4px 网格、语义 token（paper/ink/muted/accent）、焦点色 ≤2 个、复杂度预算（≤9 节点/≤12 边）、z-order（箭头在节点后）、边标签 6-10px 间隙。27 种 kind：architecture / it-state / flowchart / sequence / state / er / timeline / swimlane / quadrant / radar / loop / nested / tree / org-chart / layers / venn / pyramid / bar / line / gantt / scatter / high-level / process / medallion / data-flow / dp-integration / dp-security-matrix。**坐标类 kind**（architecture/it-state/high-level/process/medallion/data-flow/dp-integration）用 x/y/w/h 精确定位；**规则类 kind** 只给数据自动排版。架构/流程/层次结构优先用 diagram（自动布局需求才用 `mermaid`）。
-- scene3d: `{"type":"scene3d","title":"...","meshes":[{"shape":"box|sphere|cone|cylinder|torus","color":"#hex?","size":n|[w,h,d]?,"position":[x,y,z]?,"rotation":[rx,ry,rz]?,"scale":n?|[...]?}],"ambient":0-2?,"background":"#hex?"}` — 3D WebGL，可拖拽旋转、滚轮缩放；mesh 数量 1–5 个
-- quiz: `{"type":"quiz","question":"...","options":[{"label":"...","correct":true?,"feedback":"..."?}],"explanation":"...","id":"..."?,"action":"answer"?}` — 教学问答：点选即判题、可重试；`id` 变化时重置；带 action 时另回传 `{type:'quiz',question,answer,correct}`
+**细节按需读取**：上面只是名单。决定要用哪些组件后，调用 `genui_docs`，`items` 填这些组件名（以及需要的主题），读到的才是字段、变体、上限和示例；同一会话里读过的不必重读，没用到的组件不要读。主题：
+- `layouts`：多块回答的范例与版式参考（要拼两个以上主组件时读）
+- `theme`：根级 `theme` 与节点 `style`（用户要特定风格时读）
+<!-- genui:if html=on -->
+- `html`：```dsh-html 自定义画面（内置组件画不出时读）
+<!-- genui:end -->
+- `interaction`：本地优先、action 回传、状态保存、卷子模式（有交互控件时读）
+- `when`：条件显隐 / 条件禁用
+- `computed`：输入驱动的计算字段
+- `rich-text`：文字字段里的加粗、链接、换行和公式
+- `local-files`：本机截图进回答的写法
+- `icon-names`：全部图标名
 
 ## 什么时候用：内容类型 → 组件映射
 
@@ -175,7 +84,7 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 | 需要用户操作 / 筛选 / 反馈 | `button`、`input`、`select`、`checkbox`、`radio`、`switch`、`tabs` |
 | 3D 物体 / 空间布局 | `scene3d` |
 <!-- genui:if html=on -->
-| 内置组件画不出的视觉：海报、插画、动画、特殊排版、小游戏 | ```dsh-html 自定义画面（见下文） |
+| 内置组件画不出的视觉：海报、插画、动画、特殊排版、小游戏 | ```dsh-html 自定义画面（读 `genui_docs` 的 `html`） |
 <!-- genui:end -->
 
 普通要点、单条提醒、一段说明、纯代码片段：写 Markdown（列表、加粗、引用、代码块），不要换成 `list` / `callout` / `code` 组件。
@@ -187,22 +96,6 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 ```
 
 **别用的情况**：一句话能说清的事、纯闲聊、用户明确说不要 UI、以及"为了炫技硬塞"——组件服务内容，不是内容服务组件。
-
-## 行内富文本（文字类回答的底座）
-
-`text.content`、`list` 项、`table` 文本列、`keyvalue` 值、`callout` 标题与正文里可以直接写四种行内标记——**重点留在句子里，不必为一个词单起一个组件**：
-
-| 写法 | 渲染 |
-|---|---|
-| `` `code` `` | 行内代码胶囊 |
-| `**加粗**` | 强调（不换行、不成块） |
-| `==高亮==` | 极淡底色标记 |
-| `[文字](https://…)` | 行内链接（http/https/mailto；围栏会话中的本地文件链接支持右侧栏打开与行号定位；无效目标及独立 HTML artifact 中的本地文件链接显示为普通文字） |
-| JSON `"\n"`（真实换行符） | 换行——**多段文字写同一个字段**，不要为换行拆成多个节点 |
-
-不嵌套、不解析 HTML（每个标记生成 React 元素，不走 innerHTML；`<br>` 字面显示，换行用 `"\n"`）；标记没闭合时原样显示。表格文本、`badge`、`delta` 单元格、分组标题和明细首格支持现有 http/https/mailto 外链与本地文件链接，可直接用于日报的来源列；无效目标仍显示为普通文字。点击链接不会同时折叠分组或展开明细。表头不解析链接，`bar`、`spark`、`ring`、`index` 等专用数值单元格保持原有展示。
-
-文字字段只支持行内富文本。`text.content`、`callout.content`、`list` 项、`keyvalue` 值、`table` 单元格等字段中不要嵌入 Markdown 表格或连续三个及以上反引号、波浪号组成的代码围栏；表格使用 `table`，代码使用 `code`，代码改动使用 `diff`，结构化 JSON 使用 `json`。误写入文字字段的代码围栏连同内部标记保持原文，未闭合时从围栏标记开始保持原文。校验返回 `warning=block_markdown` 时，按照 `replacement` 改写结构节点并重新验证。
 
 ## 回答级版式：默认无卡，焦点唯一
 
@@ -242,207 +135,10 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 
 `node scripts/genui-usage-audit.mjs` 输出「版式多样性」：不同版式签名数、最常见签名占比、归一化熵（越接近 1 越多样）、每回答 card 数分布。熵明显下降或 card 数不降反升，就说明规则没生效。
 
-## 范例：示范「判断」，不要照抄组件序列
-
-每个范例后面都跟着**什么时候不要这样**。组件多是好事——只要每个都在承载不同信息、并且有焦点和层次；真正的毛病是重复表达、以及把纯文字段落包进卡片。
-
-### 1. 状态汇报（多点 + 有构图）
-
-```json dsh-ui
-{"items":[{"type":"grid","cols":4,"items":[{"type":"stat","label":"<user-language metric>","value":"26","delta":"#123–#148"},{"type":"stat","label":"<user-language metric>","value":"0"},{"type":"stat","label":"<user-language metric>","value":"556","delta":"<user-language status>"},{"type":"stat","label":"<user-language metric>","value":"45"}]},{"type":"table","columns":["<user-language column>","<user-language column>","<user-language column>"],"types":["text","badge","text"],"rows":[["<user-language text>","<user-language status>","<user-language text>"],["<user-language text>","<user-language status>","<user-language text>"]]},{"type":"callout","tone":"info","title":"<user-language title>","content":"<user-language text>"}]}
-```
-
-不要这样：把同一句话既写进正文又放进卡片；也不要为每条信息配一张卡（4 个 stat 排一行就够）。
-
-### 2. 解释/教学（文字为主，一个点睛组件）
-
-```json dsh-ui
-{"items":[{"type":"text","size":"body","content":"<user-language text>"},{"type":"list","items":[{"title":"<user-language title>","desc":"<user-language description>"},{"title":"<user-language title>","desc":"<user-language description>"}]},{"type":"callout","tone":"warning","title":"<user-language title>","content":"<user-language text>"}]}
-```
-
-不要这样：每段都配一个组件；把一句话拆成好几个 text 节点（用行内标记就够了）。
-
-### 3. 对比选型
-
-```json dsh-ui
-{"items":[{"type":"table","columns":["<user-language column>","<user-language column>","<user-language column>"],"types":["text","text","badge"],"rows":[["<user-language text>","<user-language text>","<user-language status>"],["<user-language text>","<user-language text>","<user-language status>"]]},{"type":"callout","tone":"success","title":"<user-language title>","content":"<user-language text>"}]}
-```
-
-不要这样：表格里放同一批数据后又画一张图。
-
-反例（这条会被围栏校验直接拒绝，所以别抄）：
-
-```json dsh-ui-bad
-{"items":[{"type":"chart","kind":"donut","data":[{"label":"A","value":1}],"series":[{"label":"B","data":[{"label":"B","value":2}]}]}]}
-```
-
-为什么拒：`series` 只对 `bars`/`line` 有效；环形图给了 `series` 属于契约冲突，围栏会**静默降级为代码块**。
-
-### 4. 排查诊断（顺序即叙事）
-
-```json dsh-ui
-{"items":[{"type":"steps","current":1,"steps":[{"title":"<user-language step>","desc":"<user-language description>"},{"title":"<user-language step>","desc":"<user-language description>"},{"title":"<user-language step>","desc":"<user-language description>"}]},{"type":"diff","diffs":[{"path":"PlotBlock.tsx","oldText":"e.preventDefault()","newText":"if (!e.metaKey && !e.ctrlKey) return"}]},{"type":"callout","tone":"info","title":"<user-language title>","content":"<user-language text>"}]}
-```
-
-不要这样：把"复现/定位/修复"写成三个卡片并列（那是流程，用 steps）。
-
-### 5. 数据结论（一个主图 + 明细）
-
-```json dsh-ui
-{"items":[{"type":"chart","kind":"line","data":[],"series":[{"label":"<user-language series>","data":[{"label":"<user-language point>","value":8},{"label":"<user-language point>","value":12},{"label":"<user-language point>","value":9}]}]},{"type":"table","columns":["<user-language column>","<user-language column>","<user-language column>"],"types":["text","num","delta"],"rows":[["<user-language text>","8","-4%"],["<user-language text>","12","+50%"]]}]}
-```
-
-不要这样：图与表用同一粒度表达同一批数据（图看趋势、表看明细才不重复）。
-
-### 6. 短回答：正确地不套组件
-
-> 这个改动我先不做了——它要动宿主的输入组件，而你说了不碰宿主。
-
-不要这样：一句话的结论配 stat + 表格 + callout。**没有内容就不发组件，这是对的，不算漏发。**
-
-## 版式参考：几个见过的好形状（不是起点，也不是菜单）
-
-下面这些是真实回答里出现过、读起来顺手的几种排法，放在这里供参考。**它们不是"先挑一个再填内容"的模板**：从内容和读者要做的动作出发，需要时借用其中一段，不需要就自己组合。
-
-尤其不要因为"这份数据像主表明细"就把整条回答套进那个骨架——同一个问题问三次，三次都该长得不一样，因为三次的答案不一样。
-
-### 阶段图（讲清「分几步 / 怎么变」的默认结构）
-
-适用：一个过程有 2–4 个阶段，或一份数据被分成若干块、逐轮合并。
-
-```json dsh-ui
-{"items":[{"type":"text","size":"h2","content":"<user-language 过程名>"},{"type":"card","items":[{"type":"row","items":[{"type":"icon","name":"Function","tone":"info","tile":true},{"type":"col","gap":2,"items":[{"type":"text","size":"h3","content":"<user-language 阶段一：名称>"},{"type":"text","size":"muted","content":"<user-language 这一步做什么>"}]}]},{"type":"arrow","length":22},{"type":"row","items":[{"type":"icon","name":"Nodes","tone":"success","tile":true},{"type":"col","gap":2,"items":[{"type":"text","size":"h3","content":"<user-language 阶段二：名称>"},{"type":"text","size":"muted","content":"<user-language 这一步做什么>"}]}]}]},{"type":"blocks","rows":[{"cells":["<user-language 块 0>","<user-language 块 1>","<user-language 块 2>","<user-language 块 3>"],"color":"#3d7eb8"}],"caption":"<user-language 每块代表什么>"}]}
-```
-
-何时不用：只有一步就别画阶段图；纯数值对比用 `chart`，别把数字塞进色块。
-
-### 主表明细（数据问答的默认结构）
-
-适用：用户问的数据要「先看总量 → 再筛 → 再钻某一行」。
-
-```json dsh-ui
-{"items":[{"type":"grid","cols":2,"items":[{"type":"stat","label":"<user-language metric>","value":"<user-language value>","delta":"+3.1%"},{"type":"stat","label":"<user-language metric>","value":"<user-language value>"}]},{"type":"input","label":"<user-language filter>","placeholder":"<user-language hint>","id":"master-filter"},{"type":"table","filter":"master-filter","columns":["<user-language column>","<user-language column>","<user-language column>"],"types":["text","num","badge"],"rows":[["<user-language text>","128","<user-language status>"],["<user-language text>","190","<user-language status>"],["<user-language text>","250","<user-language status>"]],"details":[[{"type":"keyvalue","pairs":[{"key":"<user-language key>","value":"<user-language value>"}]}],null,[{"type":"progress","value":91,"target":80,"label":"<user-language metric>"}]]}]}
-```
-
-何时不用：行数 ≤5 不要配 `filter`；没有逐行明细可展开就别配 `details`；展开行里只放该行自己的信息，不要塞与该行无关的图表。
-
-### 结论卡（分析收尾的默认结构）
-
-适用：指标 + 一个明确判断 + 可执行的下一步（周报结论、复盘、健康度检查）。
-
-```json dsh-ui
-{"items":[{"type":"grid","cols":3,"items":[{"type":"stat","label":"<user-language metric>","value":"<user-language value>","delta":"+2.4%"},{"type":"stat","label":"<user-language metric>","value":"<user-language value>"},{"type":"stat","label":"<user-language metric>","value":"<user-language value>","delta":"-1.2%"}]},{"type":"card","tone":"success","title":"<user-language title>","items":[{"type":"text","size":"body","content":"<user-language text>"},{"type":"progress","value":72,"target":80,"label":"<user-language metric>","valueLabel":"72%"}]},{"type":"row","items":[{"type":"button","label":"<user-language action>","tone":"primary","action":"<action-name>"},{"type":"button","label":"<user-language action>","tone":"ghost","action":"<action-name>"}]}]}
-```
-
-何时不用：结论还不成立时不要硬造结论卡（先摆数据，让读者自己看）；没有真实可执行的下一步就不要放按钮；`tone` 只有在确实传递语义（好/坏/险）时才用。
-
-### 封面页（报告开篇的默认结构）
-
-适用：正式报告/复盘/评审材料的**第一屏**——一个大数字定调，一句引言点题，三张摘要卡预告正文。
-
-```json dsh-ui
-{"items":[{"type":"hero","label":"<user-language metric>","value":"99.96%","delta":"+0.02%","tone":"accent","title":"<user-language title>","subtitle":"<user-language text>"},{"type":"text","size":"display","content":"<user-language statement>"},{"type":"divider","label":"<user-language chapter>"},{"type":"grid","cols":3,"items":[{"type":"card","title":"<user-language title>","items":[{"type":"stat","label":"<user-language metric>","value":"<user-language value>"}]},{"type":"card","title":"<user-language title>","items":[{"type":"stat","label":"<user-language metric>","value":"<user-language value>"}]},{"type":"card","title":"<user-language title>","items":[{"type":"stat","label":"<user-language metric>","value":"<user-language value>"}]}]}]}
-```
-
-何时不用：短回答不需要封面（hero 已是唯一焦点，再加 `display` 就是两个焦点）；hero 与 `display` 同屏时，后面不要再出现 h1 级大标题；普通问答直接给答案，不要套封面。
-
-### 对比页（方案权衡的默认结构）
-
-适用：两个（至多三个）方案/版本/选型的正面对决——定性取舍进卡，定量差异进表。
-
-```json dsh-ui
-{"items":[{"type":"grid","cols":2,"items":[{"type":"card","tone":"success","title":"<user-language option>","items":[{"type":"list","items":["<user-language text>","<user-language text>"]}]},{"type":"card","tone":"warning","title":"<user-language option>","items":[{"type":"list","items":["<user-language text>","<user-language text>"]}]}]},{"type":"table","columns":["<user-language column>","<user-language column>","<user-language column>"],"types":["text","num","num"],"rows":[["<user-language text>","8","12"],["<user-language text>","5","9"]]}]}
-```
-
-何时不用：只有单一方案时就是普通陈述，不要硬摆两张卡假装权衡；卡与表要承载**不同粒度**（卡给取舍理由、表给数值对比），两边复制同一批数字就是重复表达。
-
-### 时间线叙事（过程复盘的默认结构）
-
-适用：有先后顺序的过程/事故/迭代叙事——时间线主叙事，收尾一张卡给汇总结论。
-
-```json dsh-ui
-{"items":[{"type":"timeline","items":[{"title":"<user-language milestone>","desc":"<user-language description>","time":"<user-language date>"},{"title":"<user-language milestone>","desc":"<user-language description>","time":"<user-language date>"},{"title":"<user-language milestone>","desc":"<user-language description>","time":"<user-language date>"}]},{"type":"card","title":"<user-language title>","items":[{"type":"keyvalue","pairs":[{"key":"<user-language key>","value":"<user-language value>"},{"key":"<user-language key>","value":"<user-language value>"}]}]}]}
-```
-
-何时不用：两步以内的小流程用正文一句话讲清；纯日志列举不要套卡，`timeline` 单独就够。
-
-### 测验页（教学自测的默认结构）
-
-适用：教学/检查理解——两题以上的成组测验，radio 组带答案与解析，`submit` 聚合交卷本地判卷。
-
-```json dsh-ui
-{"items":[{"type":"radio","label":"<user-language question>","group":"q1","options":["<user-language option>","<user-language option>","<user-language option>"],"answer":1,"explanation":"<user-language explanation>"},{"type":"radio","label":"<user-language question>","group":"q2","options":["<user-language option>","<user-language option>"],"answer":0,"explanation":"<user-language explanation>"},{"type":"submit","label":"<user-language action>","action":"grade","groups":["q1","q2"]}]}
-```
-
-何时不用：单一知识点用单个 `radio`（自带本地判卷）或 `quiz` 组件，不需要 submit 组卷；题目多于 5 个拆成多条回答分批发。
-
-### Computed（输入驱动计算）
-在规格根部用 `computed` 声明有序无关的计算字段。表达式只支持数字、字段 ID、括号、`+ - * / % ^` 和 `sin cos tan asin acos atan sqrt cbrt exp log ln abs floor ceil round min max pow` 白名单函数，以及 `pi/e/tau` 常量；不执行 JavaScript。字段 ID 以字母或下划线开头，后续可含数字，最多 64 个字符。表达式最多 512 个字符、嵌套最多 32 层、每份规格最多 50 个计算字段；未声明字段、循环依赖和无效数值会显示为无效输入，图表会跳过无效点。
-
-`{{fieldId}}` 只用于允许插值的展示字段，例如规格标题、文本和统计卡片文字；代码、SVG、Mermaid 源码及 JSON 等原始数据保留原文，未知展示字段会在校验时报告。输入字段与计算字段重名时，该字段及依赖它的计算字段均显示为无效输入。`chart`、`echart` 的数据点和 `table` 单元格使用 `{"$computed":"fieldId"}` 引用数值。完整 ECharts `option` 中的数据值也可使用该引用。`format` 可设置 `locale`、`style`（`decimal|currency|percent`）、`currency` 和小数位范围。表格显示格式化文字，排序使用原始数值。`number` 输入接受带正负号的小数及科学计数法十进制值；十六进制、二进制和八进制写法无效。暂时无法解析的编辑内容保留在输入框中，不会覆盖上一次有效计算值；必填字段处于无效编辑状态时，提交按钮会禁用并显示提示。
-
-```dsh-ui
-{"computed":[{"id":"annual","expr":"monthly*12","format":{"locale":"zh-CN","style":"currency","currency":"CNY","maximumFractionDigits":0}},{"id":"tax","expr":"annual*rate","format":{"locale":"zh-CN","style":"currency","currency":"CNY","maximumFractionDigits":0}}],"items":[{"type":"input","id":"monthly","label":"月收入","inputType":"number","value":"10000"},{"type":"input","id":"rate","label":"税率","inputType":"number","value":"0.1"},{"type":"stat","label":"年度收入","value":"{{annual}}"},{"type":"stat","label":"预估税额","value":"{{tax}}"},{"type":"chart","kind":"bars","data":[{"label":"收入","value":{"$computed":"annual"}},{"label":"税额","value":{"$computed":"tax"}}]},{"type":"table","columns":["项目","金额"],"rows":[["年度收入",{"$computed":"annual"}],["预估税额",{"$computed":"tax"}]]}]}
-```
-
-## 主题与样式：让画面有风格
-
-默认外观跟随宿主主题，绝大多数回答不需要改。用户要特定风格（"做成杂志风""深色霓虹""温暖手账风"），或语义需要统一配色时，用下面两层：
-
-**根级 `theme`**（作用于整个围栏，所有组件继承）：
-
-| 字段 | 取值 | 作用 |
-|---|---|---|
-| `accent` | 颜色（`#7c3aed`、`rgb(...)`、`oklch(...)`） | 强调色：按钮、进度、选中态、图表主色、链接 |
-| `radius` | `none` / `sm` / `md` / `lg` / `xl` 或像素数 | 卡片与控件圆角 |
-| `density` | `compact` / `normal` / `relaxed` | 间距疏密 |
-| `font` | `sans` / `serif` / `mono` / `rounded`，或字体族字符串 | 字体 |
-| `surface` | `default` / `flat`（无影无框）/ `outline`（只描边）/ `soft`（淡色底）/ `glass`（半透明磨砂）/ `elevated`（更强投影） | 卡片表面 |
-| `background` | 颜色或渐变（`linear-gradient(...)` / `radial-gradient(...)`） | 整块画布背景（自动加内边距与圆角） |
-| `text` / `muted` | 颜色 | 主文字色 / 次要文字色 |
-| `border` | 颜色 | 边框色 |
-| `palette` | 颜色数组 | 所有 `chart` / `echart` 的默认分类色板（节点自身 `palette` 优先） |
-| `shadow` | `none` / `soft` / `strong` | 卡片投影强度 |
-
-**节点级 `style`**（任意节点都可带，只作用于该节点外层）：`background`、`color`、`border`、`borderColor`、`borderWidth`、`borderStyle`、`borderRadius`、`padding`、`margin`、`gap`、`fontSize`、`fontWeight`、`fontFamily`、`fontStyle`、`lineHeight`、`letterSpacing`、`textAlign`、`textTransform`、`textShadow`、`boxShadow`、`opacity`、`width`、`maxWidth`、`minHeight`、`backdropFilter`、`filter`、`transform`。值是 CSS 字符串（数字按 px）；含 `url(`、`expression`、`;`、`{}`、`<>`、`@` 的值会被丢弃。可以引用主题变量：`var(--dsl-g-accent)`、`var(--dsl-g-surface)`。
-
-```dsh-ui
-{"theme":{"accent":"#e11d48","font":"serif","radius":"lg","surface":"soft","background":"linear-gradient(135deg,#fff1f2,#ffe4e6)","palette":["#e11d48","#fb7185","#fda4af"]},"items":[{"type":"text","size":"display","content":"<user-language headline>","style":{"letterSpacing":"-0.02em"}},{"type":"grid","columns":3,"items":[{"type":"stat","label":"<label>","value":"42%"},{"type":"stat","label":"<label>","value":"1.8k"},{"type":"stat","label":"<label>","value":"+12"}]}]}
-```
-
-规则：风格是为内容服务的，先有"必须用组件"的理由，再考虑主题；同一条回答里多个围栏保持同一套主题；深浅色都要可读——给了 `background` 就同时给 `text`，避免浅底配宿主深色模式的浅字。
-
-<!-- genui:if html=on -->
-## 自定义画面：```dsh-html
-
-内置组件表达不了的视觉——海报、插画、信息图、动画演示、特殊排版、交互小玩具、小游戏——直接写一个 `dsh-html` 围栏，内容是 HTML 片段：
-
-````text
-```dsh-html
-<style>
-  .poster { padding: 32px; border-radius: 20px; background: linear-gradient(135deg, var(--dsh-accent), #0ea5e9); color: white; }
-  .poster h1 { font: 700 40px/1.1 var(--dsh-font); margin: 0 0 8px; }
-</style>
-<div class="poster"><h1>…</h1><p>…</p></div>
-```
-````
-
-- **内联渲染**：画面就出现在围栏所在位置，前后正文照常流动；背景透明、宽度占满正文列、高度随内容自适应（超过上限后在框内滚动）。不要再在外面包一层"卡片"。
-- **沙箱**：在独立的沙箱 iframe 中运行，不能访问 DSH 页面、Cookie、本地存储或任何网络请求（`fetch` / XHR / WebSocket 都会被拦截）；表单不会提交、链接在新窗口打开。
-- **主题变量**：`--dsh-fg`（主文字）、`--dsh-muted`（次要文字）、`--dsh-bg`（页面底色）、`--dsh-surface`（卡面）、`--dsh-border`、`--dsh-accent`（强调色）、`--dsh-font`、`--dsh-mono`、`--dsh-font-size`，以及 `:root[data-theme="dark"|"light"]`。宿主切换深浅色时变量会实时更新——颜色尽量用这些变量，自己定死颜色时要保证两种主题都可读。
-- **写法**：片段即可（不必写 `<html>`/`<head>`）；`<style>` 放在最前；尺寸用百分比/`max-width:100%`，不要写死大于 720px 的宽度；`<canvas>` 按 `devicePixelRatio` 放大以免模糊。
-<!-- genui:if scripts=on -->
-- **脚本**：可以用内联 `<script>` 做动画、交互和 canvas 绘制；尊重 `prefers-reduced-motion`；不要写死循环或无限增长的定时器。需要把结果交回给你时，在用户点击等操作的回调里调用 `dsh.action("name", {...})`，会以 `[genui-action] name + 数据` 发给你（只在用户刚操作过时生效）。
-<!-- genui:end -->
-<!-- genui:if scripts=off -->
-- **脚本已禁用**：只写 HTML、CSS（含动画/过渡）和 SVG；`<script>` 与事件属性不会执行。
-<!-- genui:end -->
-- **什么时候不用**：文字、表格、普通图表和内置组件能表达的，不要用 `dsh-html`——它不参与 GenUI 的状态保存与判卷，也更费输出。
-
-<!-- genui:end -->
 ## 使用规则
 
-1. **围栏放哪，组件就出现在哪** —— 文字在前后自然流动，不要用工具、不要解释"这是一个围栏"。**围栏一闭合就立即渲染**（不等整条回答结束），所以可以边写文字边出组件
+1. **围栏放哪，组件就出现在哪** —— 文字在前后自然流动，不要改用工具渲染、不要解释"这是一个围栏"。**围栏一闭合就立即渲染**（不等整条回答结束），所以可以边写文字边出组件
+1.5. **先读后写**：选定组件后用 `genui_docs` 读它们的字段（本会话读过的跳过），再写围栏；凭记忆猜字段是坏围栏的头号来源
 2. **组合优先**：复杂界面用 `grid`+`card`+`stat`+`table` 拼，不要追求单一巨型组件
 3. **JSON 必须严格合法，发出前完成 4 步自检**：插件**只**修标点级小错（字符串内半角引号、尾随逗号）；**缺括号/错括号等结构错误一律不修**，直接红横幅退化成代码块——写错就重发，别指望兜底。**最容易犯的错：字符串值里用了半角引号 `"`**——中文引语一律写 `“”` 或 `「」`。发出围栏前自检 4 条：① 括号配对：`{` 与 `}`、`[` 与 `]` 数量相等，**收尾序列逐个核对**（长表格最易在最后几行错位：把 `]]}]}` 写成 `]}]}]}`）② 无尾随逗号 ③ 值内引号用中文引号 ④ 最后一个字符必须是 `}`（**`}` 之后不要再写任何字符**——实测常见错误是习惯性追加 `</p>` 或一句解释，整条围栏就解析不了）。不要在 JSON 字符串里放 markdown；超长表格/列表拆成多个组件分开发，宁短勿长
 3.5. **字段名逐个核对**：未知组件类型（包括 `Card` / `Text` 等大小写误写）以及缺失必填字段会被校验工具拒绝。正文可保留其余有效组件；无法修复时展示源码和诊断，不会假报渲染成功。`tabs[].items` 必须提供（允许显式空数组），`content` 可作为别名；`card.body` / `card.content` 会归一化为 `items` 并提示。高频误写：`callout` 正文是 `content`（不是 text/body）；`table` 要 `columns` + `rows`（只给二维 rows 时首行会当表头）；`keyvalue` 要 `pairs:[{key,value}]`；`diff` 是 `diffs`；图片/音视频是 `src`；`code` 是 `code`、`copy` 是 `text`。<!-- genui:if validation=always|uncertain -->
@@ -476,18 +172,3 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 <!-- genui:if validation=skip -->
 11. **直接发出**：本环境不提供校验工具。发出前按第 3 条自检括号、逗号、引号与字段名后直接写围栏；坏组件会被丢弃、坏围栏退化成代码块。
 <!-- genui:end -->
-
-### 地图 `map`：地点选择与内联路线
-
-需要让用户比较地点、选择候选位置或查看示意路线时，使用原生 `map`，不要用静态图片伪装交互地图。默认是无街道底图的离线坐标地图，真实标记与路线由 MapLibre 渲染。地点列表始终可用。
-
-```dsh-ui
-{"items":[{"type":"map","id":"stop","title":"候选地点（合成示例）","locations":[{"id":"a","label":"地点 A","coordinates":[12.49,41.89]},{"id":"b","label":"地点 B","coordinates":[12.51,41.90]}],"routes":[{"id":"r","label":"示意路线，非导航","coordinates":[[12.49,41.89],[12.51,41.90]]}]},{"type":"submit","label":"确认地点","action":"choose_stop","groups":["stop"]}]}
-```
-
-- `locations` 必填，最多 50 项：`id` 唯一且稳定，`label`，`coordinates: [经度, 纬度]`，可选 `description`。坐标必须有限，经度 [-180,180]、纬度 [-90,90]；不确定坐标时不要编造真实地点。
-- 可选 `routes` 最多 8 条，每条有 `id`、`label`、2–500 对内联坐标。只接受 LineString 路径，不调用导航、地理编码或远程 GeoJSON。不要声称路线可安全通行、距离或预计时间已核实。
-- 可选 `center`、`zoom`（0–20）、`height`（200–640）、`selected`（地点 ID）。选中标记与列表双向同步；缩放、重置视图、清除选择都只在本地执行。
-- `id` 复用表单字段持久化，独立 `submit` 才发送 `fields[id] = 选中地点 ID`。不要在 map 上写 `action`。
-- 不允许在模型 JSON 中设置 style、source URL、worker URL、API key 或凭据，不请求地理位置权限。外部底图只能由可信宿主配置。导出保留离线坐标地图，不导出宿主的私有样式配置；分享前审查地点隐私。
-- 资源或 WebGL 不可用时明确降级为可操作地点列表与路线坐标，不把降级描述成完整地图。完整契约见 `docs/map.md`。

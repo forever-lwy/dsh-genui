@@ -9,7 +9,7 @@
  *     <!-- genui:end -->
  *
  * Keys: `validation` (always / uncertain / skip), `html` (on / off),
- * `scripts` (on / off, meaningful only with html on). Blocks may nest; the
+ * `scripts` / `remote` (on / off, meaningful only with html on). Blocks may nest; the
  * innermost ones resolve first.
  * @module @forever-lwy/dsh-genui/plugin/skill-content
  */
@@ -23,6 +23,7 @@ function valueOf(key: string, config: GenuiConfig): string | undefined {
     case 'validation': return config.validation
     case 'html': return config.html.enabled ? 'on' : 'off'
     case 'scripts': return config.html.enabled && config.html.scripts ? 'on' : 'off'
+    case 'remote': return config.html.enabled && config.html.remote ? 'on' : 'off'
     default: return undefined
   }
 }

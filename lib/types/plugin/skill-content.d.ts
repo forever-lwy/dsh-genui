@@ -9,7 +9,7 @@
  *     <!-- genui:end -->
  *
  * Keys: `validation` (always / uncertain / skip), `html` (on / off),
- * `scripts` (on / off, meaningful only with html on). Blocks may nest; the
+ * `scripts` / `remote` (on / off, meaningful only with html on). Blocks may nest; the
  * innermost ones resolve first.
  * @module @forever-lwy/dsh-genui/plugin/skill-content
  */
