@@ -2,10 +2,9 @@
  * dsh-genui browser half: the ```dsh-ui fence renderer, the keyed toolview
  * for the `render_ui` tool, and the session panel dock.
  *
- * Fence rendering uses the stock DSH DOM. `dom-fence.ts` observes the
- * conversation DOM, identifies `dsh-ui` blocks and mounts the renderer in
- * plugin-owned React roots. The plugin-owned GenuiActionContext relays
- * `[genui-action]` through the scoped conversation send.
+ * Fence rendering uses DSH's language-keyed Markdown fence layers. The host
+ * owns discovery, streaming and React lifetime; GenUI owns its render tree and
+ * session-scoped actions.
  *
  * The renderer parses the fence body with the partial parser: while the reply
  * streams, every FINISHED component appears the moment its JSON object

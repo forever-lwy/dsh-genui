@@ -14,14 +14,15 @@ const pkg = JSON.parse(await readFile('package.json', 'utf8')) as {
   engines: { dsh: string }
 }
 const dshPeers = Object.entries(pkg.peerDependencies).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
-const floor = '>=0.2.1-rc.5'
+const floor = '>=0.2.2-rc.3'
 const versionCases = [
   ['0.2.0', false],
   ['0.2.1-rc.4', false],
-  ['0.2.1-rc.5', true],
-  ['0.2.1', true],
-  ['0.2.2-alpha.2', true],
-  ['0.2.2-rc.1', true],
+  ['0.2.1-rc.5', false],
+  ['0.2.1', false],
+  ['0.2.2-alpha.2', false],
+  ['0.2.2-rc.1', false],
+  ['0.2.2-rc.3', true],
   ['0.2.2', true],
   ['0.3.0-rc.1', true],
   ['1.0.0', true],

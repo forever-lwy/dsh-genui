@@ -16,16 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # minimum 与 current 覆盖支持下限和当前 DSH 发布版。
         include:
           - node: 24
-            host-ref: "dsh-v0.2.0-rc.1"
-            role: minimum
-          - node: 22
-            host-ref: "dsh-v0.2.1-rc.3"
-            role: current
-          - node: 24
-            host-ref: "dsh-v0.2.1-rc.3"
+            host-ref: "dsh-v0.2.2-rc.3"
             role: current
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -85,16 +78,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check Node 22 runtime (typecheck + full tests + build)
-        if: matrix.node == 22 && matrix.role == 'current'
+        if: matrix.role == 'current'
         run: pnpm run check
+
+      - name: Native Markdown fence browser acceptance
+        run: |
+          npm install --prefix .e2e-artifacts/pw --no-audit --no-fund playwright-core@1.65.0
+          node .e2e-artifacts/pw/node_modules/playwright-core/cli.js install chromium
+          node scripts/check-native-fence-browser.mjs
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.e2e-artifacts/.browsers
 
       - name: Check published host API (typecheck + full unit suite + build)
         run: pnpm run check:host-api "${{ matrix.host-ref }}"
-
-      # rc.4 is on npm next; retain rc.3 for source-host browser acceptance.
-      - name: Check next published host API
-        if: matrix.role == 'current'
-        run: pnpm run check:host-api dsh-v0.2.1-rc.4
 
       - name: Verify and pack plugin tarball
         id: pack
@@ -230,7 +226,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24]
+        node: [24]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -252,58 +248,6 @@ jobs:
       - name: Pack
         run: npm pack --json
 
-  published-alpha:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.7.0
-      - name: Install plugin dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Check published alpha API
-        run: pnpm run check:host-api dsh-v0.2.2-alpha.2
-      - name: Install exact published alpha host
-        id: host
-        run: node scripts/prepare-published-host.mjs 0.2.2-alpha.2
-      - name: Verify and pack plugin tarball
-        id: pack
-        run: node scripts/verify-pack.mjs --keep
-      - name: Alpha packed gallery and computed acceptance
-        run: node scripts/e2e.mjs --smoke --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.host.outputs.root }}
-          DSH_BIN: ${{ steps.host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-alpha.2
-      - name: Alpha packed Map browser acceptance
-        run: node scripts/e2e.mjs --smoke --map --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
-        env:
-          DSH_ROOT: ${{ steps.host.outputs.root }}
-          DSH_BIN: ${{ steps.host.outputs.bin }}
-          DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-alpha.2
-      - name: Archive alpha browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: published-alpha
-          retention-days: 7
-          include-hidden-files: true
-          path: |
-            gallery-*.png
-            gallery-*.json
-            computed-*.png
-            computed-*.json
-            .e2e-artifacts/map/map-*.png
-            .e2e-artifacts/map/map-*.json
-            .e2e-artifacts/map/map-offline.html
-          if-no-files-found: ignore
-
   published-current:
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -318,12 +262,10 @@ jobs:
       - name: Install plugin dependencies
         run: pnpm install --frozen-lockfile
       - name: Check published current API
-        run: pnpm run check:host-api dsh-v0.2.2-rc.1
-      - name: Check previous published RC API
-        run: pnpm run check:host-api dsh-v0.2.1-rc.5
+        run: pnpm run check:host-api dsh-v0.2.2-rc.3
       - name: Install exact published current host
         id: host
-        run: node scripts/prepare-published-host.mjs 0.2.2-rc.1
+        run: node scripts/prepare-published-host.mjs 0.2.2-rc.3
       - name: Verify and pack plugin tarball
         id: pack
         run: node scripts/verify-pack.mjs --keep
@@ -333,14 +275,14 @@ jobs:
           DSH_ROOT: ${{ steps.host.outputs.root }}
           DSH_BIN: ${{ steps.host.outputs.bin }}
           DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-rc.1
+          DSH_HOST_VERSION: 0.2.2-rc.3
       - name: Current packed Map browser acceptance
         run: node scripts/e2e.mjs --smoke --map --install tarball --tarball "${{ steps.pack.outputs.tarball }}" --tarball-sha256 "${{ steps.pack.outputs.sha256 }}" --port 3190
         env:
           DSH_ROOT: ${{ steps.host.outputs.root }}
           DSH_BIN: ${{ steps.host.outputs.bin }}
           DSH_HOST_LAYOUT: registry
-          DSH_HOST_VERSION: 0.2.2-rc.1
+          DSH_HOST_VERSION: 0.2.2-rc.3
       - name: Archive current browser evidence
         if: always()
         uses: actions/upload-artifact@v4

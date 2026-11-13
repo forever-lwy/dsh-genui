@@ -1,5 +1,5 @@
 /**
- * The dsh-ui fence render pipeline used by the DOM observer and renderer tests.
+ * The dsh-ui fence render pipeline used by the native fence layer and renderer tests.
  * An unrepairable body returns `null` so the stock code block stays visible,
  * with {@link FenceDiagnostic} mounted above it (issue #158).
  */
@@ -100,7 +100,7 @@ export function describeFenceFailure(raw: string, options: { settled?: boolean }
 /**
  * The visible diagnostic for a settled, unrenderable ```dsh-ui body.
  *
- * The DOM channel renders this above the host's stock code block. A
+ * The native fence layer renders this above the host's stock code block. A
  * fence that keeps degrading to raw JSON must say why it degraded — the
  * console-only path left the defect invisible (issues #158/#172).
  *
@@ -205,7 +205,7 @@ function renderInlineFence(key: Key, context: GenuiFenceContext | undefined, spe
 }
 
 /**
- * The resolved fence render for the DOM channel: `null` when the body is
+ * The resolved fence render for the native fence layer: `null` when the body is
  * unrepairable (the stock code block stays visible), otherwise the panel
  * publisher (`panel:true`; renders nothing in the flow — mounted as an empty
  * root so the taken-over block is hidden) or the inline GenuiBlock tree.

@@ -2,10 +2,9 @@
  * dsh-genui browser half: the ```dsh-ui fence renderer, the keyed toolview
  * for the `render_ui` tool, and the session panel dock.
  *
- * Fence rendering uses the stock DSH DOM. `dom-fence.ts` observes the
- * conversation DOM, identifies `dsh-ui` blocks and mounts the renderer in
- * plugin-owned React roots. The plugin-owned GenuiActionContext relays
- * `[genui-action]` through the scoped conversation send.
+ * Fence rendering uses DSH's language-keyed Markdown fence layers. The host
+ * owns discovery, streaming and React lifetime; GenUI owns its render tree and
+ * session-scoped actions.
  *
  * The renderer parses the fence body with the partial parser: while the reply
  * streams, every FINISHED component appears the moment its JSON object
@@ -21,7 +20,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { IConversation } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { createElement } from 'react'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
-import { installDomFenceRenderer } from './dom-fence.tsx'
+import { installNativeFenceRenderer } from './native-fence.tsx'
 import { installSidechatAdapter, type SidechatSurfaceService } from './sidechat-surface.tsx'
 import { createFileLinkAvailability, withFileLinkContext, type FileLinkCordisContext } from './file-link-context.tsx'
 import { createPanelSlashSource } from './panel-command.ts'
@@ -110,7 +109,7 @@ function sendPanelInstruction(ctx: Context, sessionId: SessionId, instruction: s
 }
 
 /**
- * Inline-fence action relay (DOM channel): the same message template the
+ * Inline-fence action relay (native fence layer): the same message template the
  * host action message template, so inline actions reach the model consistently.
  */
 function sendInlineGenuiAction(ctx: Context, sessionId: SessionId, action: string, payload: Record<string, unknown>): void {
@@ -130,7 +129,7 @@ function sendInlineGenuiAction(ctx: Context, sessionId: SessionId, action: strin
  * toolview for the render_ui tool, and the session panel dock; returning the
  * disposers lets cordis tear all registrations down on plugin unload. */
 export function apply(ctx: Context): () => void {
-  // Provider 提交所属线程身份和专属操作路由；DOM renderer 继续忽略这些 surface。
+  // Provider 提交所属线程身份和专属操作路由；原生围栏层继续忽略这些 surface。
   ctx.inject(['genuiSidechat'], scope => {
     scope.effect(() => installSidechatAdapter(scope.get('genuiSidechat') as Partial<SidechatSurfaceService> | undefined), 'genui: host sidechat surface')
   })
@@ -145,10 +144,10 @@ export function apply(ctx: Context): () => void {
   // fiber forever and kill all GenUI rendering.
   const localeDispose = bridgeHostLocale(ctx)
   const fileLinkAvailability = createFileLinkAvailability(ctx as unknown as FileLinkCordisContext)
-  console.info('[genui] client active; fence-channel=dom')
+  console.info('[genui] client active; fence-channel=native')
   const disposers: Array<() => void> = [
     localeDispose,
-    installDomFenceRenderer(ctx, (sessionId, action, payload) => sendInlineGenuiAction(ctx, sessionId, action, payload), fileLinkAvailability),
+    installNativeFenceRenderer(ctx, (sessionId, action, payload) => sendInlineGenuiAction(ctx, sessionId, action, payload), fileLinkAvailability),
   ]
   // Fork: settings. The renderer follows the row through configForms; the
   // Plugins page gets an editor for it while the host row is served.

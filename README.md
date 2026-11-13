@@ -1,5 +1,9 @@
 > **Fork note (forever-lwy)**: a personal fork of [omdsh-dev/dsh-genui](https://github.com/omdsh-dev/dsh-genui), package `@forever-lwy/dsh-genui`, installed from `github:forever-lwy/dsh-genui` (the default branch `release` carries prebuilt versions). Against upstream: Markdown-first prompting (prose answers stay Markdown however long); pre-render validation selectable as always / uncertain / skip on the plugin's settings page, `render_ui` off by default; a root `theme` and per-node `style`; sandboxed inline ```` ```dsh-html ```` drawings; on-demand component reference through `genui_docs` (the skill body is a ~9K core); and an "Export answer" action that saves a reply as a single HTML file with its rendering.
 
+Version 0.16.3 targets DSH `0.2.2-rc.3`. Its `dsh-ui`, `dsh-html` and `svg` fences use the official `conversation.chat.markdown.fence` layers. The global DOM observer, language recovery and detached React-root maintenance have been removed. Ordinary JSON and unlabelled fences keep the host's code view. Session actions, saved form state and settled panel publication retain their existing identities; explicit sidechat providers keep their scoped adapter.
+
+The native boundary is covered by `tests/native-fence.spec.tsx` and a real Chromium check using the published rc.3 slot renderer: `PLAYWRIGHT_BROWSERS_PATH=.e2e-artifacts/.browsers node scripts/check-native-fence-browser.mjs`. Local browser tools live under `.e2e-artifacts/pw`; no running DSH or model credential is used.
+
 <div align="center">
 
 <img src="./assets/genui-logo.svg" width="380" alt="GenUI for DeepSeek Harness">
@@ -10,7 +14,7 @@
 </p>
 
 [![npm version](https://img.shields.io/npm/v/@changfenhuang/dsh-genui.svg?style=flat-square&color=3B82F6)](https://www.npmjs.com/package/@changfenhuang/dsh-genui)
-[![DSH Compatibility](https://img.shields.io/badge/DSH-^0.2.0--rc.1%20||%20^0.2.1--rc.1%20||%20^0.2.2--alpha.2-10B981?style=flat-square)](https://github.com/omdsh-dev/dsh-genui)
+[![DSH Compatibility](https://img.shields.io/badge/DSH-tested%200.2.2--rc.3-10B981?style=flat-square)](https://github.com/omdsh-dev/dsh-genui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg?style=flat-square)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Topic: dsh-plugin](https://img.shields.io/badge/ecosystem-dsh--plugin-purple?style=flat-square)](https://github.com/topics/dsh-plugin)
@@ -80,7 +84,7 @@ https://github.com/user-attachments/assets/f5db33ec-7471-4d4a-a85b-79c9962ab4ef
 ### 1. Prerequisites
 
 Ensure your environment meets the following requirements:
-- **DSH Version**: `^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2`. Packed browser acceptance covers `0.2.0-rc.1`, `0.2.1-rc.3` and the exact npm hosts `0.2.2-rc.1` (current `latest` / `next`) and `0.2.2-alpha.2`; `0.2.1-rc.4` and `0.2.1-rc.5` retain separate public-API, full-unit-suite and build checks. The current RC and alpha hosts require **Node.js >=24.9.0**. Its gallery, computed-field and Map acceptance uses official local replay; third-party sidebar integration is checked on rc.3.
+- **DSH Version**: built and tested against `0.2.2-rc.3`, Node.js >=24.9.0. Native Markdown fence layers are required; `engines.dsh` remains `*` under this fork’s version policy.
 - **pnpm on PATH**: The `dsh plugin` CLI requires pnpm. If missing: run `corepack enable` or `npm i -g pnpm`, then **open a new terminal** and confirm `pnpm -v` prints a version number.
 
 ### 2. Install & Activate
@@ -240,18 +244,18 @@ sequenceDiagram
     autonumber
     actor User as User
     participant Host as DSH Host / LLM
-    participant DOM as Conversation DOM
+    participant DOM as Native Markdown fence slot
     participant GenUI as GenUI Client Renderer
     participant Assets as On-Demand Assets (ECharts/Three)
 
     User->>Host: Prompt (e.g. "Analyze recent order trends")
     Host-->>DOM: Streams Markdown prose & ```dsh-ui fence
-    DOM->>GenUI: Detects fence and normalizes schema against whitelist
+    DOM->>GenUI: Dispatches language, code and streaming state
     alt Requires Heavy Engines
         GenUI->>Assets: Dynamically fetches engine bundles
         Assets-->>GenUI: Assets loaded
     end
-    GenUI->>DOM: Mounts React component tree incrementally
+    GenUI->>DOM: Returns components inside the host React tree
     opt Client-Side Local Actions
         User->>GenUI: Sort table / Drag plot slider / Answer quiz
         GenUI-->>User: Instant sub-millisecond local update
@@ -288,17 +292,13 @@ dsh plugin --profile web add link:$PWD
 ```sh
 pnpm run check           # Type checks + full unit test suite + build
 pnpm run test            # Run Vitest unit tests
-pnpm run check:host-api dsh-v0.2.1-rc.3  # Check the retained rc.3 host API
-pnpm run check:host-api dsh-v0.2.1-rc.4  # Check the earlier rc.4 API
-pnpm run check:host-api dsh-v0.2.1-rc.5  # Check the earlier rc.5 API, full suite and build
-pnpm run check:host-api dsh-v0.2.2-rc.1  # Check the current npm latest / next API, full suite and build
-pnpm run check:host-api dsh-v0.2.2-alpha.2  # Check the supported npm alpha API, full suite and build
+pnpm run check:host-api dsh-v0.2.2-rc.3  # Current host API, full suite and build
 node scripts/verify-pack.mjs --keep  # Verify and inspect npm tarball
 ```
 
 ### End-to-End (E2E) Testing
 
-CI and the release workflow install `0.2.2-alpha.2` from npm with `node scripts/prepare-published-host.mjs 0.2.2-alpha.2`, then verify the packed plugin in a fresh web profile. This lane uses `DSH_HOST_LAYOUT=registry` and `DSH_HOST_VERSION=0.2.2-alpha.2` with the returned `DSH_ROOT` and `DSH_BIN`; the source-host lanes remain pinned to their official tags. The same registry-host lane also installs `0.2.2-rc.1`, with `DSH_HOST_VERSION=0.2.2-rc.1`. Registry-host checks pin Cordis framework dependencies to the versions recorded in each host’s published manifest so later dependency resolution cannot change the host graph. Both current RC and alpha API, gallery/computed and Linux Map checks must pass before npm publication. Actions use official local replay; Android device and original Windows Desktop acceptance remain separate.
+CI checks the exact `0.2.2-rc.3` public API, native-fence browser rendering and packed Gallery/Map flows. The tag-triggered release workflow builds and tests the source, then publishes the prebuilt `release` branch. Model actions in browser acceptance use official local replay.
 
 - **Visual E2E Smoke (No Model API Key Required)**:
   ```sh
@@ -396,7 +396,7 @@ dsh plugin --profile web add @changfenhuang/dsh-genui
 <details>
 <summary><strong>Q: The chat screen goes blank when rendering a fence?</strong></summary>
 
-This version requires DSH `^0.2.0-rc.1 || ^0.2.1-rc.1 || ^0.2.2-alpha.2`. Older host versions lack necessary React slot/context capabilities; please upgrade DSH.
+This version uses the native Markdown fence layers in DSH `0.2.2-rc.3`. Upgrade the host before updating this plugin.
 </details>
 
 ---

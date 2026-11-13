@@ -41,7 +41,7 @@ const DROP_SELECTORS = [
   '[data-genui-rendered]',
   '[data-genui-export]',
   '.genui-html-tools',
-  '.genui-dom-fence-diagnostic',
+  '.genui-fence-diagnostic',
   'button[aria-label]:not([data-genui] button):not([data-genui-artifact] button)',
   'script',
   'noscript',

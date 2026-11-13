@@ -201,12 +201,12 @@ describe('Map real-browser acceptance contract (no browser launched)', () => {
     expect(await readFile(prepared.auditFile, 'utf8')).toBe('')
     expect(await readFile(patch[1].insert[0].name, 'utf8')).toContain('Refusing unexpected or extra model calls')
   })
-  it('preserves older host coverage and requires exact latest RC browser acceptance', async () => {
+  it('requires the current rc.3 native-fence host in API and browser acceptance', async () => {
     const workflow = parse(await readFile('.github/workflows/ci.yml', 'utf8'))
-    expect(Object.keys(workflow.jobs)).toEqual(['check', 'browser-text-newlines', 'windows-pack', 'published-alpha', 'published-current'])
+    expect(Object.keys(workflow.jobs)).toEqual(['check', 'browser-text-newlines', 'windows-pack', 'published-current'])
     expect(workflow.permissions).toBeUndefined()
     expect(workflow.jobs.check.strategy.matrix.include.map((lane: { 'host-ref': string }) => lane['host-ref']))
-      .toEqual(['dsh-v0.2.0-rc.1', 'dsh-v0.2.1-rc.3', 'dsh-v0.2.1-rc.3'])
+      .toEqual(['dsh-v0.2.2-rc.3'])
     const steps = workflow.jobs.check.steps
     const step = steps.find((s: { name?: string }) => s.name?.startsWith('Map real browser'))
     expect(step.run).toContain('--smoke --map --install tarball')
@@ -214,17 +214,13 @@ describe('Map real-browser acceptance contract (no browser launched)', () => {
     const archive = steps.find((s: { name?: string }) => s.name === 'Archive synthetic Map browser evidence')
     expect(archive.with['retention-days']).toBe(7)
     expect(archive.with.path).not.toMatch(/HOME|\.log|profile|events\.jsonl/)
-    const alpha = workflow.jobs['published-alpha'].steps
-    expect(alpha.find((s: { name?: string }) => s.name === 'Install exact published alpha host').run).toContain('prepare-published-host.mjs 0.2.2-alpha.2')
-    expect(alpha.find((s: { name?: string }) => s.name === 'Alpha packed Map browser acceptance').run).toContain('--smoke --map --install tarball')
     const current = workflow.jobs['published-current'].steps
-    expect(current.find((s: { name?: string }) => s.name === 'Check published current API').run).toContain('check:host-api dsh-v0.2.2-rc.1')
-    expect(current.find((s: { name?: string }) => s.name === 'Check previous published RC API').run).toContain('check:host-api dsh-v0.2.1-rc.5')
-    expect(current.find((s: { name?: string }) => s.name === 'Install exact published current host').run).toContain('prepare-published-host.mjs 0.2.2-rc.1')
+    expect(current.find((s: { name?: string }) => s.name === 'Check published current API').run).toContain('check:host-api dsh-v0.2.2-rc.3')
+    expect(current.find((s: { name?: string }) => s.name === 'Install exact published current host').run).toContain('prepare-published-host.mjs 0.2.2-rc.3')
     for (const name of ['Current packed gallery and computed acceptance', 'Current packed Map browser acceptance']) {
       const acceptance = current.find((s: { name?: string }) => s.name === name)
       expect(acceptance.run).toContain('steps.pack.outputs.sha256')
-      expect(acceptance.env.DSH_HOST_VERSION).toBe('0.2.2-rc.1')
+      expect(acceptance.env.DSH_HOST_VERSION).toBe('0.2.2-rc.3')
       expect(acceptance['continue-on-error']).not.toBe(true)
     }
   })
@@ -240,10 +236,10 @@ describe('Map real-browser acceptance contract (no browser launched)', () => {
       expect(index).toBeLessThan(publish)
       expect(steps[index]['continue-on-error']).not.toBe(true)
     }
-    expect(steps.find((s: { name?: string }) => s.name === 'Check published current API').run).toContain('check:host-api dsh-v0.2.2-rc.1')
-    expect(steps.find((s: { name?: string }) => s.name === 'Install exact published current host').run).toContain('prepare-published-host.mjs 0.2.2-rc.1')
+    expect(steps.find((s: { name?: string }) => s.name === 'Check published current API').run).toContain('check:host-api dsh-v0.2.2-rc.3')
+    expect(steps.find((s: { name?: string }) => s.name === 'Install exact published current host').run).toContain('prepare-published-host.mjs 0.2.2-rc.3')
     for (const name of ['Current packed gallery and computed acceptance', 'Current packed Map browser acceptance']) {
-      expect(steps.find((s: { name?: string }) => s.name === name).env.DSH_HOST_VERSION).toBe('0.2.2-rc.1')
+      expect(steps.find((s: { name?: string }) => s.name === name).env.DSH_HOST_VERSION).toBe('0.2.2-rc.3')
     }
   })
   it('keeps Map mode separate from existing Gallery/Sidechat and validates before port probing', async () => {
