@@ -1,7 +1,5 @@
 import { act, cleanup, fireEvent, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Context } from '@deepseek-ai/cordis'
-import { installDomFenceRenderer } from '../src/client/dom-fence.tsx'
 import { installSidechatAdapter, mountSidechatSurface, type SidechatSurface } from '../src/client/sidechat-surface.tsx'
 
 const body = JSON.stringify({ items: [
@@ -45,17 +43,6 @@ afterEach(async () => {
 })
 
 describe('explicit sidechat surfaces', () => {
-  it('keeps current main DOM renderer out of explicit surfaces even with a dsh-ui label', async () => {
-    const value = surface()
-    value.root.querySelector('.md-code-block > div')!.textContent = 'dsh-ui'
-    const send = vi.fn()
-    const ctx = { sessions: { list: { getSnapshot: () => ({ ids: ['main'] }) }, retainInfo: () => ({ getSnapshot: () => ({ retainedBy: { mainView: 1 } }) }) } } as unknown as Context
-    await act(async () => { disposers.push(installDomFenceRenderer(ctx, send)); await new Promise(resolve => setTimeout(resolve, 35)) })
-    expect(value.root.querySelector('[data-genui]')).toBeNull()
-    expect(value.root.querySelector<HTMLElement>('.md-code-block')!.style.display).toBe('')
-    expect(send).not.toHaveBeenCalled()
-  })
-
   it('renders one owning child and never asks for a main-session route', async () => {
     const value = surface()
     await mount(value)
@@ -132,9 +119,6 @@ describe('explicit sidechat surfaces', () => {
   it('restores Markdown and closes the action route when a mounted provider marker changes', async () => {
     const value = surface({ source: 'dsh-native/sidechat' })
     value.root.querySelector('.md-code-block > div')!.textContent = 'dsh-ui'
-    const send = vi.fn()
-    const ctx = { sessions: { list: { getSnapshot: () => ({ ids: ['main'] }) }, retainInfo: () => ({ getSnapshot: () => ({ retainedBy: { mainView: 1 } }) }) } } as unknown as Context
-    await act(async () => { disposers.push(installDomFenceRenderer(ctx, send)); await new Promise(resolve => setTimeout(resolve, 35)) })
     await mount(value)
     const button = within(value.root).getByRole('button', { name: 'Send' })
     value.root.removeAttribute('data-genui-surface')
@@ -145,7 +129,6 @@ describe('explicit sidechat surfaces', () => {
     expect(value.root.querySelector('[data-genui]')).toBeNull()
     expect(value.root.querySelector<HTMLElement>('.md-code-block')!.style.display).toBe('')
     expect(value.root.hasAttribute('data-genui-sidechat-root')).toBe(true)
-    expect(send).not.toHaveBeenCalled()
   })
 
   it('keeps root exclusion ownership when duplicate mounts and stale disposers overlap', async () => {

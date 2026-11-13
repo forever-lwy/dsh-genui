@@ -9,7 +9,7 @@ import { classifyLinkTarget, parseFileLink } from '../src/client/file-link.ts'
 import { createFileLinkAvailability, withFileLinkContext, type FileLinkCordisContext } from '../src/client/file-link-context.tsx'
 import { renderInline } from '../src/client/inline.ts'
 import { renderGenuiFence } from '../src/client/fence-render.tsx'
-import { installDomFenceRenderer } from '../src/client/dom-fence.tsx'
+import { createNativeFenceLayer } from '../src/client/native-fence.tsx'
 import { repairGenuiSpec } from '../src/client/guard.ts'
 
 afterEach(() => {
@@ -280,35 +280,20 @@ describe('fence render channels', () => {
     expect(openResource).toHaveBeenCalledWith('dsh-resource://file/session/session-1/src/registry.ts', { params: { line: 22 } })
   })
 
-  it('opens a DOM-rendered file and keeps streaming links as plain text until settled', async () => {
+  it('opens a native fence file only after its document settles', async () => {
     const host = sessionContext()
     const openResource = host.provide()
-    const row = document.createElement('div')
-    row.setAttribute('data-chat-anchor-key', 'dom-file')
-    row.setAttribute('data-chat-flow-kind', 'assistant-step')
-    row.setAttribute('data-streaming', '')
-    const fence = document.createElement('span')
-    fence.textContent = '<dsh-ui>\n{"items":[{"type":"text","content":"[DOM](src/dom.ts#L17)"}]}\n</dsh-ui>'
-    row.append(fence)
-    document.body.append(row)
-
-    const dispose = installDomFenceRenderer(host.ctx as never, () => {}, host.availability)
-    try {
-      await waitFor(() => {
-        expect(row.querySelector('.genui-dom-fence')?.textContent).toContain('DOM')
-      })
-      expect(row.querySelector('.genui-dom-fence button')).toBeNull()
-      row.removeAttribute('data-streaming')
-      await waitFor(() => expect(row.querySelector('.genui-dom-fence button')).not.toBeNull())
-      fireEvent.click(row.querySelector('.genui-dom-fence button')!)
-      expect(openResource).toHaveBeenCalledWith('dsh-resource://file/session/session-1/src/dom.ts', { params: { line: 17 } })
-
-      row.querySelector('.genui-dom-fence')!.replaceChildren()
-      await waitFor(() => expect(row.querySelector('.genui-dom-fence button')).not.toBeNull(), { timeout: 1800 })
-      fireEvent.click(row.querySelector('.genui-dom-fence button')!)
-      expect(openResource).toHaveBeenCalledTimes(2)
-    } finally {
-      dispose()
-    }
+    const Layer = createNativeFenceLayer(host.ctx as never, () => {}, host.availability)
+    const code = JSON.stringify({ items: [{ type: 'text', content: '[Native](src/native.ts#L17)' }] })
+    const tree = streaming => <div data-chat-anchor-key="file-link" data-chat-flow-kind="assistant-step">
+      <Layer lang="dsh-ui" code={code} streaming={streaming} sessionId={'session-1' as never}><pre>{code}</pre></Layer>
+    </div>
+    const view = render(tree(true))
+    expect(screen.queryByRole('button', { name: 'Native (src/native.ts)' })).toBeNull()
+    view.rerender(tree(false))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Native (src/native.ts)' })).toBeDefined())
+    fireEvent.click(screen.getByRole('button', { name: 'Native (src/native.ts)' }))
+    expect(openResource).toHaveBeenCalledWith('dsh-resource://file/session/session-1/src/native.ts', { params: { line: 17 } })
   })
+
 })
