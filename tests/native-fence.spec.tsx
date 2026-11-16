@@ -45,6 +45,16 @@ describe('native Markdown fence extension', () => {
     expect(release).toHaveBeenCalledTimes(3)
   })
 
+  it('signals lazy prefetch only when a native GenUI fence actually renders', () => {
+    const dispatch = vi.spyOn(document, 'dispatchEvent')
+    const view = fixture({ code: 'invalid UI' })
+    expect(dispatch.mock.calls.some(([event]) => event.type === 'genui:fence-mounted')).toBe(false)
+    view.rerender(view.tree(text, false))
+    expect(dispatch.mock.calls.filter(([event]) => event.type === 'genui:fence-mounted')).toHaveLength(1)
+    view.rerender(view.tree(text, false))
+    expect(dispatch.mock.calls.filter(([event]) => event.type === 'genui:fence-mounted')).toHaveLength(1)
+  })
+
   it('renders in the host React tree and routes actions to its own session', async () => {
     const view = fixture({ code: form })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'owned' } })

@@ -1,5 +1,5 @@
 /** Native Markdown fence layers. The host owns discovery, streaming and React lifetime. */
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -46,17 +46,22 @@ export function createNativeFenceLayer(ctx: Context, sendAction: SendAction, ava
     const context: GenuiFenceContext = { sessionId,
       ...(!streaming && current?.key ? { source: { id: current.key, order: [current.order, 0, current.index] as const } } : {}) }
     let content = children
+    let renderedGenui = false
     if (current !== null) {
       const key = current.key ?? lang
       const rendered = lang === 'svg' ? (streaming ? null : renderSvgFence(code, key))
         : lang === 'dsh-html' ? renderHtmlFence(code, key, !streaming)
           : renderResolvedFenceNode(code, key, context)
+      renderedGenui = lang === 'dsh-ui' && rendered !== null
       content = rendered ?? <>{lang === 'dsh-ui' && !streaming ? <div className="genui-fence-diagnostic"><FenceDiagnostic raw={code} settled /></div> : null}{children}</>
       content = withFileLinkContext(ctx as unknown as FileLinkCordisContext, availability, sessionId, streaming,
         <GenuiActionContext.Provider value={(action, payload) => {
           if (active.current === sessionId) sendAction(sessionId, action, payload)
         }}>{content}</GenuiActionContext.Provider>)
     }
+    useEffect(() => {
+      if (renderedGenui) document.dispatchEvent(new Event('genui:fence-mounted'))
+    }, [renderedGenui])
     return <div ref={element} data-genui-fence-seat={lang} style={{ display: 'contents' }}>{content}</div>
   }
 }

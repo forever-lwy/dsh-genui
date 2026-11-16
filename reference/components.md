@@ -56,7 +56,7 @@
 
 ## image
 
-- image: `{"type":"image","src":"/mmx-files/result.png","alt":"<user-language description>"}` — 展示浏览器可访问的 http(s) 或同源相对图片地址；懒加载；不支持 `file:`/`data:` 等本地或主动协议；`"caption":"<user-language 图注>"` 在图**下方**加说明行（来源/解读/署名；`alt` 是图**上方**的标签行，两者分工不同）
+- image: `{"type":"image","src":"/mmx-files/result.png","alt":"<user-language description>"}` — 展示浏览器可访问的 http(s) 或同源相对图片地址；懒加载；不支持 `file:`/`data:` 等本地或主动协议；`"caption":"<user-language 图注>"` 在图**下方**加说明行（来源/解读/署名；`alt` 是图**上方**的标签行，两者分工不同）；图片可点击，原地打开原生对话框查看原图（Esc / 关闭返回并恢复焦点）
 
 本机截图与本地文件的地址写法见 `genui_docs` 主题 `local-files`。
 
@@ -209,7 +209,7 @@ Check CheckCircle Info InfoCircle Warning Error X Plus Minus Circle ArrowDown Ar
 
 ## choices
 
-- choices: `{"type":"choices","title":"<user-language title>","prompt":"<user-language question>","mode":"single|multi","max":2,"submit":"<button label>","action":"<action>","items":[{"label":"<option>","hint":"<one-line cost>","meta":"P0","recommended":true},{"label":"<option>","hint":"...","disabled":true,"reason":"<why unavailable>"}]}` — **要读者做决定的列表**，不是读的列表：每个选项自带一行代价（`hint`）、可选证据（`meta`，右对齐等宽）、`recommended` 推荐标记、`disabled` + `reason`（保留在列表里而不是删掉，读者要看得到为什么不行）。`mode` 默认单选；`multi` 配 `max` 控制上限。选中的行左侧有强调条 + 淡底，提交后显示「已发送 · 仍可修改」并且**允许继续改**（改了就清掉已发送状态）。`action` 缺省时选择完全留在本地；有 `action` 时提交回传 `{question, selected, mode}`。最多 8 项——超过 8 项说明这是一张表，不是一次选择。
+- choices: `{"type":"choices","title":"<user-language title>","prompt":"<user-language question>","mode":"single|multi","max":2,"submit":"<button label>","action":"<action>","items":[{"label":"<option>","hint":"<one-line cost>","meta":"P0","recommended":true},{"label":"<option>","hint":"...","disabled":true,"reason":"<why unavailable>"}]}` — **要读者做决定的列表**，不是读的列表：每个选项自带一行代价（`hint`）、可选证据（`meta`，右对齐等宽）、`recommended` 推荐标记、`disabled` + `reason`（保留在列表里而不是删掉，读者要看得到为什么不行）。`mode` 默认单选；`multi` 配 `max` 控制上限。选中的行左侧有强调条 + 淡底，提交后显示「已发送 · 仍可修改」并且**允许继续改**（改了就清掉已发送状态）。**需要模型接收选择并推进对话时，必须同时提供 `submit` 和非空 `action`**，点击提交后回传 `{question, selected, mode}`。缺少 `action` 时选择仅保存在当前界面，无法推进对话，界面会提前提示；试卷题目可通过 `group` 和同一 fence 中的 `submit` 收集答案。最多 8 项——超过 8 项说明这是一张表，不是一次选择。
 
 多道题组卷与本地判分见主题 `interaction`（卷子模式）。
 

@@ -1,6 +1,6 @@
 > **Fork note (forever-lwy)**: a personal fork of [omdsh-dev/dsh-genui](https://github.com/omdsh-dev/dsh-genui), package `@forever-lwy/dsh-genui`, installed from `github:forever-lwy/dsh-genui` (the default branch `release` carries prebuilt versions). Against upstream: Markdown-first prompting (prose answers stay Markdown however long); pre-render validation selectable as always / uncertain / skip on the plugin's settings page, `render_ui` off by default; a root `theme` and per-node `style`; sandboxed inline ```` ```dsh-html ```` drawings; on-demand component reference through `genui_docs` (the skill body is a ~9K core); and an "Export answer" action that saves a reply as a single HTML file with its rendering.
 
-Version 0.16.3 targets DSH `0.2.2-rc.3`. Its `dsh-ui`, `dsh-html` and `svg` fences use the official `conversation.chat.markdown.fence` layers. The global DOM observer, language recovery and detached React-root maintenance have been removed. Ordinary JSON and unlabelled fences keep the host's code view. Session actions, saved form state and settled panel publication retain their existing identities; explicit sidechat providers keep their scoped adapter.
+Version 0.16.4 targets DSH `0.2.2-rc.3`. Its `dsh-ui`, `dsh-html` and `svg` fences use the official `conversation.chat.markdown.fence` layers. The global DOM observer, language recovery and detached React-root maintenance have been removed. Ordinary JSON and unlabelled fences keep the host's code view. Session actions, saved form state and settled panel publication retain their existing identities; explicit sidechat providers keep their scoped adapter.
 
 The native boundary is covered by `tests/native-fence.spec.tsx` and a real Chromium check using the published rc.3 slot renderer: `PLAYWRIGHT_BROWSERS_PATH=.e2e-artifacts/.browsers node scripts/check-native-fence-browser.mjs`. Local browser tools live under `.e2e-artifacts/pw`; no running DSH or model credential is used.
 
@@ -161,7 +161,7 @@ dsh-genui Capabilities
   - **Live Parameter Sliders**: Drag sliders to redraw curves instantly at 60 FPS; supports auto-animation loops.
 - **Mermaid & 3D Visuals**: Flowcharts, sequence diagrams, and lightweight 3D models with on-demand asset loading.
 - **Native Galleries**: `carousel` composes existing cards and forms in a responsive, keyboard-navigable horizontal track; `image-group` opens images in a local lightbox with focus restoration. Navigation does not invoke model actions. [Examples and verification](docs/gallery.md).
-- **Native Media**: Inline playback for accessible audio and video URLs, with poster images, aspect ratios, and controls.
+- **Native Media**: Inline playback for accessible audio and video URLs, with poster images, aspect ratios, and controls; a single `image` opens a zoom dialog on click and returns focus to the picture when it closes.
 - **KaTeX Math Rendering**: Inline math (`$...$`) and display blocks (`$$...$$`), supporting matrices and multi-line equations.
 
 ### 3. ⚡ Local-First Responsiveness
