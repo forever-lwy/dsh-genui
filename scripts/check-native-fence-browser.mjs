@@ -42,6 +42,30 @@ try {
   assert.equal(action[1], 'continue')
   assert.equal(action[2].fields.choice, 'Keep this while streaming')
   await page.screenshot({ path: resolve(out, 'native-form.png'), fullPage: true })
+  const preserved = 'The explanation after JSON must remain visible. <script>window.tailExecuted=true</script>'
+  await page.evaluate(suffix => window.fixture.set({ lang: 'dsh-ui', streaming: true,
+    code: JSON.stringify({ items: [{ type: 'text', content: 'Prefix before explanation' }] }) + '\n' + suffix }), preserved)
+  await page.locator('[data-genui]').waitFor()
+  await page.evaluate(() => window.fixture.set({ streaming: false }))
+  await page.getByRole('alert').waitFor()
+  assert.ok((await page.locator('[data-code-block-content]').textContent()).includes(preserved))
+  assert.equal(await page.evaluate(() => window.tailExecuted), undefined)
+  await page.screenshot({ path: resolve(out, 'preserved-tail.png'), fullPage: true })
+  await page.evaluate(() => window.fixture.set({ code: JSON.stringify({ items: [
+    { type: 'image', src: '/assets/genui-logo.svg', alt: 'Image zoom acceptance', caption: 'Keep this caption' },
+  ] }) }))
+  const imageButton = page.locator('button[aria-haspopup="dialog"]')
+  await imageButton.click()
+  await page.getByRole('dialog').waitFor({ state: 'visible' })
+  assert.ok((await page.getByRole('dialog').textContent()).includes('Keep this caption'))
+  await page.screenshot({ path: resolve(out, 'image-dialog.png'), fullPage: true })
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  assert.equal(await imageButton.evaluate(element => document.activeElement === element), true)
+  await page.setViewportSize({ width: 390, height: 844 })
+  assert.equal(await imageButton.isVisible(), true)
+  await page.screenshot({ path: resolve(out, 'image-mobile.png'), fullPage: true })
+  await page.setViewportSize({ width: 1100, height: 900 })
   await page.evaluate(() => window.fixture.set({ lang: 'json' }))
   await page.locator('[data-code-block-content]').waitFor()
   assert.equal(await page.locator('[data-genui]').count(), 0)
@@ -60,7 +84,7 @@ try {
   assert.deepEqual(errors, [])
   await writeFile(resolve(out, 'results.json'), JSON.stringify({ host: '0.2.2-rc.3', passed: [
     'real host HOC dispatch', 'streaming input retention', 'session action routing', 'ordinary JSON fallback',
-    'invalid fence diagnostic', 'settled panel publication', 'SVG', 'HTML iframe', 'plugin unload',
+    'invalid fence diagnostic', 'settled panel publication', 'SVG', 'HTML iframe', 'plugin unload', 'settled tail preservation', 'image dialog and focus return', 'mobile image visibility',
   ] }, null, 2) + '\n')
-  console.log('PASS: 9 native fence checks in Chromium with the published DSH rc.3 renderer')
+  console.log('PASS: 12 native fence checks in Chromium with the published DSH rc.3 renderer')
 } finally { await browser?.close(); await server.close() }

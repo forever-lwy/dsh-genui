@@ -70,4 +70,8 @@ export declare const GENUI_LIMITS: {
     readonly maxEChartArrayLen: 500;
     /** Maximum entries traversed while sanitizing an `echart` option. */
     readonly maxEChartOptionNodes: 2000;
+    /** Maximum nesting depth of a `json` node value. Deeper payloads cannot be
+     *  serialized by the block fingerprints (`JSON.stringify`) or drawn by the
+     *  JSON tree without overflowing the stack. */
+    readonly maxJsonDepth: 32;
 };

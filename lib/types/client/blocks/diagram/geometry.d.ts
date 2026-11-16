@@ -31,6 +31,22 @@ export interface Attach {
     y: number;
     port: Port;
 }
+/** Edge-label typography shared by layout and SVG rendering. */
+export declare const EDGE_LABEL_FONT_SIZE = 8;
+export declare const EDGE_LABEL_LETTER_SPACING = 0.5;
+export interface EdgeLabelMetrics {
+    /** Text advance including SVG letter spacing, in canvas pixels. */
+    textWidth: number;
+    /** Opaque label-mask width including horizontal padding. */
+    boxWidth: number;
+}
+/**
+ * Measure labels using the 8px Geist Mono advance: 0.6em for Latin glyphs,
+ * 1em for CJK/full-width/emoji graphemes, plus the renderer's 0.5px tracking.
+ * SVG textLength applies this same measurement to the painted text, keeping
+ * the label mask and the rendered glyph run geometrically consistent.
+ */
+export declare function edgeLabelMetrics(label: string): EdgeLabelMetrics;
 /** Center of a box. */
 export declare function center(b: Box): Point;
 /**

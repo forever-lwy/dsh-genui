@@ -11,6 +11,8 @@ export interface FenceResolveOptions {
 }
 /** 一次围栏候选正文经过规格守卫后的结果。 */
 export interface FenceResolution {
+    /** Original text that a prefix-only rendering would hide. */
+    readonly unconsumedText?: string;
     /** 参与本次规格处理的解析值；没有可解析值时为 null。 */
     readonly value: unknown | null;
     /** 规格守卫输出的诊断；没有可解析值时为 null。 */

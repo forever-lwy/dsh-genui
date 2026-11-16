@@ -6,7 +6,7 @@
 > - 技能按需加载：常驻提示只有组件目录，模型用 `genui_docs` 读取选中组件的细节；
 > - 回答操作栏“导出回答”：导出保留渲染效果的单文件 HTML（GenUI 块离线仍可交互）。
 
-0.16.3 改用官方 `conversation.chat.markdown.fence` 槽位，渲染 `dsh-ui`、`dsh-html` 和 `svg`。主聊天的全局 DOM 观察器、语言猜测和独立 React 根维护已删除；普通 JSON 与无语言围栏保留为代码。表单持久状态、会话动作、面板去重沿用原有身份，侧聊继续通过显式 adapter 接入。
+0.16.4 沿用官方 `conversation.chat.markdown.fence` 槽位，渲染 `dsh-ui`、`dsh-html` 和 `svg`。主聊天的全局 DOM 观察器、语言猜测和独立 React 根维护已删除；普通 JSON 与无语言围栏保留为代码。表单持久状态、会话动作、面板去重沿用原有身份，侧聊继续通过显式 adapter 接入。
 
 <div align="center">
 

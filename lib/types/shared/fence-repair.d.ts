@@ -22,6 +22,13 @@
  *   WHOLE body parses.
  * @module @changfenhuang/dsh-genui/shared/fence-repair
  */
+/** A repaired JSON value plus any original source it could not consume. */
+export interface FenceJsonRepair {
+    text: string;
+    repairs: number;
+    /** Original content outside the adopted JSON root. Never silently discard it. */
+    unconsumedText?: string;
+}
 /** A fence body counts as complete when it parses as a whole JSON value. */
 export declare function isCompleteJson(raw: string): boolean;
 /** Short human-readable reason for a body that fails whole-JSON parsing, or
@@ -80,7 +87,4 @@ export declare function trimToBalancedRoot(text: string): string | null;
  * failed, and re-scanning the raw text could not compose the repairs.
  * Adopted only when the completed body parses as whole JSON.
  */
-export declare function completeFenceJson(raw: string): {
-    text: string;
-    repairs: number;
-} | null;
+export declare function completeFenceJson(raw: string): FenceJsonRepair | null;

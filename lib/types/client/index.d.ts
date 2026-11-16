@@ -16,8 +16,19 @@ import type { Context } from '@deepseek-ai/cordis';
 /** Add low-priority prefetch links for the lazy engine assets (mermaid/three).
  * Browser-dependent: some engines ignore `<link rel=prefetch>`; harmless
  * either way — the on-demand loader still covers a cache miss. Exported for
- * tests. */
+ * tests.
+ *
+ * Not called at boot: these engines are ~1.25 MB gzip together, and most
+ * sessions never render a mermaid or 3D node. {@link prefetchOnFirstFence}
+ * arms it once, when the first `dsh-ui` fence actually renders. */
 export declare function prefetchGenuiAssets(): void;
+/** DOM fence renderer 挂载 dsh-ui fence 后派发的事件。 */
+export declare const FENCE_MOUNTED_EVENT = "genui:fence-mounted";
+/**
+ * Prefetch the lazy engines once, after the first `dsh-ui` fence renders.
+ * @returns a disposer removing the pending listener.
+ */
+export declare function prefetchOnFirstFence(): () => void;
 /** Cordis client entry: install the fence renderer on boot, the keyed
  * toolview for the render_ui tool, and the session panel dock; returning the
  * disposers lets cordis tear all registrations down on plugin unload. */

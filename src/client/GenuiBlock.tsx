@@ -25,6 +25,7 @@ import { isDatePickerValueValid } from './date-picker.ts'
 import { walkGenuiNodes } from './walk-spec.ts'
 import { repairMap } from './map-data.ts'
 import { applyThemePalette, themeRootProps } from './theme.ts'
+import { useLocaleRevision } from './i18n/index.ts'
 
 export const GENUI_ACTION_DEBOUNCE_MS = 300
 
@@ -90,6 +91,7 @@ function specEquivalent(a: GenuiSpec, b: GenuiSpec): boolean {
 /** Stateful implementation. Streaming state adopts its first durable key
  * when the reply settles; switching an existing durable key starts fresh. */
 function GenuiBlockInstance({ spec, stateKey, animateEntrance = true, initialState, onStateChange, onStateSnapshot }: GenuiBlockProps) {
+  const localeRevision = useLocaleRevision()
   const gap = spec.gap ?? 16
   const copyPreviews = useCopyPreviewState(spec)
   const onAction = useDebouncedAction(useGenuiAction())
@@ -163,7 +165,7 @@ function GenuiBlockInstance({ spec, stateKey, animateEntrance = true, initialSta
   const computedSpec = useMemo(() => {
     const numericValues = Object.fromEntries(Object.entries(fieldState.numericValues).filter(([id]) => fieldKinds.numeric.has(id)))
     return resolveComputedSpec(spec, evaluateComputed(spec, { ...fields, ...numericValues }))
-  }, [spec, fields, fieldState.numericValues, fieldKinds])
+  }, [spec, fields, fieldState.numericValues, fieldKinds, localeRevision])
   const submissionRegistry = useMemo(() => compileSubmissionRegistry(computedSpec), [computedSpec])
   // Fork: the theme's palette reaches charts without their own; root tokens go inline.
   const paintedSpec = useMemo(() => applyThemePalette(computedSpec), [computedSpec])

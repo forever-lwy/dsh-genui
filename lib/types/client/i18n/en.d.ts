@@ -414,6 +414,7 @@ export declare const EN: {
     readonly 'block.choices.maxHint': "Pick up to {max}.";
     readonly 'block.choices.count': "{count} selected";
     readonly 'block.choices.localOnly': "Kept locally · nothing was sent";
+    readonly 'block.choices.noAction': "This card cannot send your selection to the model";
     readonly 'block.choices.sent': "Sent · you can still change it";
     readonly 'block.datePicker.start': "Start date";
     readonly 'block.datePicker.end': "End date";
@@ -428,6 +429,20 @@ export declare const EN: {
     readonly 'err.fieldValidation': "GenUI field validation failed: {errors}";
     readonly 'err.unknownType': "Unsupported component: {type}. Correct the component type and resend.";
     readonly 'err.chartValidation': "chart field validation failed: {errors}";
+    readonly 'err.fenceTrailingContent': "⚠️ Text follows the UI JSON inside this fence. The original is kept visible; close the fence before the explanation and resend without omitting any content.";
     readonly 'err.fenceKeptAsCode': "⚠️ dsh-ui {diagnostic} — the fence stays a code block; fix it and resend.";
     readonly 'err.fenceParse': "⚠️ dsh-ui fence JSON failed to parse {diagnostic} — the fence stays a code block; ask the model to fix the JSON and resend.";
+    readonly 'echart.failed': "ECharts failed to render";
+    readonly 'echart.loading': "Loading chart…";
+    readonly 'plot.hint': "⌘/Ctrl + scroll to zoom · drag to pan";
+    readonly 'plot.resetView': "↺ Reset range";
+    readonly 'plot.cannotDraw': "{expr} — cannot be drawn (invalid expression or range)";
+    readonly 'plot.params': "Parameters";
+    readonly 'plot.reset': "↺ Reset";
+    readonly 'plot.pause': "⏸ Pause";
+    readonly 'plot.play': "▶ Play animation";
+    readonly 'skeleton.generating': "Generating interface";
+    readonly 'skeleton.generatingTitle': "Generating interface: {title}";
+    readonly 'tool.card': "tool card";
+    readonly 'computed.invalidValue': "Invalid input";
 };

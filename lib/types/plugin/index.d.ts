@@ -9,6 +9,13 @@
  * @module @changfenhuang/dsh-genui
  */
 import { Context } from '@deepseek-ai/cordis';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+/** Strong validator for one asset: its content hash (assets are built output and fixed per release). */
+export declare function assetEtag(body: Uint8Array): string;
+/** Whether an `If-None-Match` header already names `etag` (comma list, `*`, or weak `W/` forms). */
+export declare function etagMatches(header: string | string[] | undefined, etag: string): boolean;
+/** The handler itself (registered via the optional webServer probe). */
+export declare function serveGenuiAsset(req: IncomingMessage, res: ServerResponse, assetDirectory?: string): Promise<void>;
 export { GENUI_SECTION_TEXT, buildGenuiSectionText } from './prompt.ts';
 export { Config } from './config.ts';
 export type { GenuiConfig } from './config.ts';

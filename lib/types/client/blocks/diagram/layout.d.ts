@@ -16,7 +16,7 @@
  * @module @changfenhuang/dsh-genui/client/blocks/diagram/layout
  */
 import type { GenuiDiagram, GenuiDiagramEdge, GenuiDiagramNode } from '../../spec.ts';
-import { Box } from './geometry.ts';
+import { type Box } from './geometry.ts';
 export interface LayoutNode {
     node: GenuiDiagramNode;
     box: Box;
@@ -26,6 +26,8 @@ export interface LayoutEdge {
     /** Resolved box references for routing. */
     fromId: string;
     toId: string;
+    /** Horizontal center of a label slot when row layout allocates a widened gap. */
+    labelCx?: number | undefined;
 }
 export interface DiagramLayout {
     nodes: LayoutNode[];
